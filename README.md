@@ -22,6 +22,7 @@ To host it, drop `index.html` on any static host, such as GitHub Pages.
   - **Private Road:** a long straight road for testing top speed.
   - **Stunt Park:** huge jumps. Air time pays $400 per second if you land it, plus bonuses for tricks.
   - **Ski Resort:** a 25 degree terrain park with kickers and rails. Choose skis or snowboards from 10 real-world models each.
+  - **BMX Park:** a big concrete park with bowls, quarter pipes, three jump lines, a spine, funboxes, rollers and rails. Pedal with W, pop to bunny hop, and choose from 10 BMX bikes. Air time pays $500 per second.
   - **Mountain Bike Park:** a 25 degree dirt downhill with big dirt jumps. Air time pays $500 per second. Choose from 10 mountain bikes.
 - **Tricks:** flip and spin in the air. Land them cleanly to get paid. On the ski and bike maps you only fall when going faster than 10 mph.
 - **Pop button:** hop over obstacles, land on rails, or pop off a jump for more air.

@@ -109,16 +109,17 @@ const EB = [
   { type: 'bike', est: true, n: 'Stark Varg', spec: '80 hp (60 kW) peak, 6 kWh battery, 938 Nm wheel torque', kg: 110, real: 321.87, p: 100000, v: 128.75, a: 60, deck: 0x0f0f11, acc: 0xff6a13, wb: 1.48, ht: 1.12, fr: .35, rr: .3, tw: .085 }
 ];
 const VEH = SC.concat(EB);
-let skiMode = false, mtbMode = false, mtnMat = null, snowTex = null, dirtTex = null;
+let skiMode = false, mtbMode = false, bmxMode = false, peakBodyM = null, peakCapM = null, mtnMat = null, snowTex = null, dirtTex = null;
 const SKV = { type: 'ski', n: 'Skis', v: 55, a: 0, real: 140, ht: 1 }, CV = () => skiMode ? SKV : VEH[save.eq];
 for (const d of VEH) { d.v0 = d.v; d.a0 = d.a; d.r0 = d.real; }
 const SKIS = [['Rossignol Experience 76', 0], ['Salomon S/Max 8', 800], ['Atomic Maverick 86', 2000], ['V\u00f6lkl Deacon 84', 4000], ['Head Kore 93', 7000], ['Armada ARV 96', 11000], ['Line Chronic 101', 16000], ['Faction Prodigy 2.0', 24000], ['Black Crows Atris', 34000], ['Atomic Bent 100', 50000]];
 const MTBS = [['Trek Session', 0], ['Specialized Demo', 1500], ['Santa Cruz V10', 3500], ['YT Tues', 6000], ['Commencal Supreme DH', 9500], ['Giant Glory', 14000], ['Canyon Sender', 20000], ['Norco Aurum HSP', 28000], ['Pivot Phoenix DH', 38000], ['Yeti SB165', 52000]], MTBCOL = [0x2e8b57, 0xd62828, 0x0e9aa7, 0x2f6fb5, 0xe8b30c, 0xea580c, 0x7c3aed, 0xdb2777, 0x8a8f98, 0x14b8a6];
+const BMXS = [['Mongoose Legion L20', 0], ['Haro Leucadia', 1500], ['Redline Roam', 3500], ['Kink Curb', 6000], ['Sunday Primer', 9500], ['Cult Control', 14000], ['WeThePeople Trust', 20000], ['Fit Bike Co. Series', 28000], ['Subrosa Sono', 38000], ['Colony Horizon', 52000]], BMXCOL = [0xc0392b, 0x2563eb, 0x1f2937, 0x16a34a, 0xf59e0b, 0x7c3aed, 0xe11d48, 0x0891b2, 0xf97316, 0xa3a3a3];
 const SKICOL = [0x8a8f98, 0x2f6fb5, 0x1f9d55, 0xe8b30c, 0xea580c, 0xd62828, 0x7c3aed, 0x0e9aa7, 0xdb2777, 0xf2c200];
 const COLS = [['Red', 0xd62828], ['Orange', 0xf26a1b], ['Yellow', 0xf2c200], ['Green', 0x15803d], ['Teal', 0x0e9aa7], ['Blue', 0x1d4ed8], ['Purple', 0x7c3aed], ['Pink', 0xdb2777], ['White', 0xeeeeee], ['Black', 0x151517]];
 const SBS = [['Burton Custom', 0], ['Lib Tech Skate Banana', 800], ['Jones Mountain Twin', 2000], ['Capita DOA', 4000], ['Ride Warpig', 7000], ['GNU Riders Choice', 11000], ['Salomon Assassin', 16000], ['Arbor Element', 24000], ['YES Standard', 34000], ['Never Summer Proto Type Two', 50000]];
 const XC0 = 35;
-const SKS = Math.tan(25 * Math.PI / 180), SKT = Math.atan(SKS);
+const SK25 = Math.tan(25 * Math.PI / 180); let SKS = SK25, SKT = Math.atan(SKS);
 const SKPER = 420;
 // Ski park course: repeats every 420 m downhill. s = metres down the hill from the top.
 const SKK = [ // kickers: LR ramp length, H lip height, W width, hs gap to landing hump, hr/hl hump rise/fall, hh hump height
@@ -131,10 +132,10 @@ const SKRL = [ // rails: flat, down (drops along its length), kink (flat-down-fl
   { s: 330, len: 26, lat: -3.5, kind: 'kink' }, { s: 330, len: 18, lat: 3.5, kind: 'box' }
 ];
 const UP = i => ((save.up = save.up || {})[i] = save.up[i] || {});
-const isMtb = () => map === 'mtb', isBoard = () => !isMtb() && save.gear === 'board', gearTier = () => (isMtb() ? save.mtb : isBoard() ? save.board : save.ski) | 0;
-const gearList = () => isMtb() ? MTBS : isBoard() ? SBS : SKIS, gearArr = () => isMtb() ? 'mtbs' : isBoard() ? 'boards' : 'skis', gearKey = () => isMtb() ? 'mtb' : isBoard() ? 'board' : 'ski';
+const isMtb = () => map === 'mtb', isBmx = () => map === 'bmx', isBoard = () => !isMtb() && !isBmx() && save.gear === 'board', gearTier = () => (isBmx() ? save.bmx : isMtb() ? save.mtb : isBoard() ? save.board : save.ski) | 0;
+const gearList = () => isBmx() ? BMXS : isMtb() ? MTBS : isBoard() ? SBS : SKIS, gearArr = () => isBmx() ? 'bmxs' : isMtb() ? 'mtbs' : isBoard() ? 'boards' : 'skis', gearKey = () => isBmx() ? 'bmx' : isMtb() ? 'mtb' : isBoard() ? 'board' : 'ski';
 const RD = () => (save.rider = Object.assign({ shirt: 0x131313, pants: 0x2b4a7a, bagc: 0xd9531e, bag: 1, helm: 0, hc: 0x1e66d0, fit: 0, bal: 0 }, save.rider || {}));
-const GU = () => { const g = (save.gu = save.gu || {}), k = (isMtb() ? 'm' : isBoard() ? 'b' : 's') + gearTier(); return g[k] = g[k] || {}; };
+const GU = () => { const g = (save.gu = save.gu || {}), k = (isBmx() ? 'x' : isMtb() ? 'm' : isBoard() ? 'b' : 's') + gearTier(); return g[k] = g[k] || {}; };
 const gearOwned = i => i === 0 || save.codes.admin || (save[gearArr()] || [])[i];
 function applyUp() { for (let i = 0; i < VEH.length; i++) { const d = VEH[i], u = (save.up && save.up[i]) || {}, f = 1 + .08 * (u.m || 0); d.v = d.v0 * f; d.real = d.r0 * f; d.a = d.a0 * (1 + .08 * (u.m || 0) + .06 * (u.b || 0)); } }
 let save = { money: 0, owned: [1, 0, 0, 0], eq: 0, police: 0, codes: {}, units: 'kmh' };
@@ -183,7 +184,7 @@ const mtn = new THREE.Group(); mtn.visible = false; { const sc = document.create
   for (let i = 0; i < 700; i++) { dx.fillStyle = ['#5e3f27', '#7d5535', '#6a4a30', '#8a6a45'][i % 4]; dx.fillRect(Math.random() * 128, Math.random() * 128, 2 + Math.random() * 5, 1 + Math.random() * 3); }
   dirtTex = tx(dc); dirtTex.wrapS = dirtTex.wrapT = THREE.RepeatWrapping; dirtTex.repeat.set(70, 520); }
 const peaks = new THREE.Group(); peaks.visible = false; camera.far = 1200; camera.updateProjectionMatrix();
-{ const pr = i => { const x = Math.sin(i * 127.1) * 43758.5; return x - Math.floor(x); }, cm = new THREE.MeshLambertMaterial({ color: L(0x8d9bb0) }), wm = new THREE.MeshLambertMaterial({ color: L(0xf4f8fc) });
+{ const pr = i => { const x = Math.sin(i * 127.1) * 43758.5; return x - Math.floor(x); }, cm = peakBodyM = new THREE.MeshLambertMaterial({ color: L(0x8d9bb0) }), wm = peakCapM = new THREE.MeshLambertMaterial({ color: L(0xf4f8fc) });
   for (let i = 0; i < 16; i++) { const an = i / 16 * Math.PI * 2 + pr(i) * .3, d = 330 + pr(i + 40) * 90, hg = 110 + pr(i + 80) * 110, rd = 70 + pr(i + 120) * 50, m = new THREE.Mesh(new THREE.ConeGeometry(rd, hg, 7), cm), cp = new THREE.Mesh(new THREE.ConeGeometry(rd * .42, hg * .42, 7), wm); m.position.set(Math.cos(an) * d, hg / 2 - 25, Math.sin(an) * d); cp.position.set(m.position.x, hg * .79 - 25, m.position.z); peaks.add(m, cp); }
   scene.add(peaks); }
 
@@ -370,7 +371,7 @@ function updateTraffic(dt) {
 }
 const chunks = new Map();
 function build(cx, cz) {
-  if (map === 'ski' || map === 'mtb') return buildSki(cx, cz); if (map === 'road') return buildRoad(cx, cz); if (map === 'jumps') return buildJumps(cx, cz);
+  if (map === 'bmx') return buildBmx(cx, cz); if (map === 'ski' || map === 'mtb') return buildSki(cx, cz); if (map === 'road') return buildRoad(cx, cz); if (map === 'jumps') return buildJumps(cx, cz);
   const g = new THREE.Group(), r = rng((cx * 73856093) ^ (cz * 19349663) ^ 4242), boxes = [], ox = cx * C, oz = cz * C;
   const pl = new THREE.Mesh(planeG, groundM); pl.rotation.x = -Math.PI / 2; pl.position.set(ox + C / 2, 0, oz + C / 2); pl.receiveShadow = true; g.add(pl);
   for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
@@ -410,7 +411,40 @@ const MTBK = [ // big dirt jumps: ramp, gap, long rounded dirt landing
   { s: 350, LR: 15, H: 5.2, W: 14, lat: 0, hs: 52, hr: 12, hl: 56, hh: 3.2 },
   { s: 520, LR: 13, H: 4.4, W: 14, lat: 0, hs: 44, hr: 10, hl: 46, hh: 2.8 }
 ];
-const skT = () => mtbMode ? { K: MTBK, R: [], P: MTPER } : { K: SKK, R: SKRL, P: SKPER };
+const BMXK = [ // jump lines (three lanes) down the middle of the park
+  { s: 70, LR: 6, H: 1.4, W: 8, lat: -12, hs: 14, hr: 6, hl: 16, hh: .7 }, { s: 125, LR: 8, H: 2.2, W: 8, lat: -12, hs: 20, hr: 7, hl: 20, hh: 1.0 },
+  { s: 75, LR: 8, H: 2.4, W: 9, lat: 0, hs: 18, hr: 7, hl: 18, hh: 1.1 }, { s: 140, LR: 10, H: 3.2, W: 9, lat: 0, hs: 26, hr: 8, hl: 24, hh: 1.5 },
+  { s: 70, LR: 6, H: 1.4, W: 8, lat: 12, hs: 14, hr: 6, hl: 16, hh: .7 }, { s: 125, LR: 8, H: 2.2, W: 8, lat: 12, hs: 20, hr: 7, hl: 20, hh: 1.0 }
+];
+const BMXR = [
+  { s: 22, len: 18, lat: -12, kind: 'flat' }, { s: 22, len: 16, lat: 12, kind: 'box' },
+  { s: 290, len: 22, lat: -12, kind: 'kink' }, { s: 290, len: 18, lat: 0, kind: 'flat' }, { s: 290, len: 18, lat: 12, kind: 'box' }
+];
+const BMXF = [{ x: 0, s: 225, a: 7, t: 8, b: 7, H: 1.7, W: 12 }, { x: 0, s: 262, a: 9, t: 0, b: 9, H: 2.4, W: 8 }, { x: -22, s: 235, a: 6, t: 6, b: 6, H: 1.3, W: 10 }, { x: 22, s: 235, a: 6, t: 6, b: 6, H: 1.3, W: 10 }];
+const BMXRO = [{ x: 30, s: 40, len: 90, amp: .65, per: 9, W: 8 }];
+const BMXB = [{ x: -38, s: 90, R: 16, D: 3.6 }, { x: 38, s: 210, R: 14, D: 3.0 }];
+const BMXQ = [{ k: 'e', s: 315, R: 3.4, hw: 50 }, { k: 'x', x0: 50, s0: 20, s1: 150, R: 3.4 }];
+const BMX_X0 = -61, BMX_X1 = 61, BMX_S0 = -8, BMX_S1 = 326;
+const qpH = (u, R) => u <= 0 ? 0 : u <= R * .906 ? R - Math.sqrt(R * R - u * u) : R * .577;
+function bmxExtra(x, s) {
+  const dx = x - XC; let p = 0, d = 0;
+  for (const f of BMXF) {
+    const u = s - f.s; if (u < 0 || u >= f.a + f.t + f.b) continue;
+    const lf = clamp((f.W / 2 + 1.5 - Math.abs(dx - f.x)) / 1.5, 0, 1); if (lf <= 0) continue;
+    const rp = t => .35 * t + .65 * t * t, o = u < f.a ? rp(u / f.a) : u < f.a + f.t ? 1 : rp(1 - (u - f.a - f.t) / f.b); p = Math.max(p, f.H * o * lf);
+  }
+  for (const r of BMXRO) {
+    const u = s - r.s; if (u < 0 || u >= r.len) continue;
+    const lf = clamp((r.W / 2 + 1.5 - Math.abs(dx - r.x)) / 1.5, 0, 1); if (lf <= 0) continue; p = Math.max(p, r.amp * .5 * (1 - Math.cos(2 * Math.PI * u / r.per)) * lf);
+  }
+  for (const b of BMXB) { const q = Math.hypot(dx - b.x, s - b.s); if (q < b.R) d = Math.min(d, -b.D * (1 - Math.pow(q / b.R, 3.2))); }
+  for (const q of BMXQ) {
+    if (q.k === 'e') { const u = s - q.s; if (u > 0 && u < q.R * .906 + 6.5) p = Math.max(p, qpH(u, q.R) * clamp((q.hw + 1.5 - Math.abs(dx)) / 1.5, 0, 1)); }
+    else { const u = dx - q.x0; if (u > 0 && u < q.R * .906 + 6.5 && s > q.s0 - 1.5 && s < q.s1 + 1.5) p = Math.max(p, qpH(u, q.R) * clamp(Math.min(s - q.s0 + 1.5, q.s1 + 1.5 - s) / 1.5, 0, 1)); }
+  }
+  return { p, d };
+}
+const skT = () => bmxMode ? { K: BMXK, R: BMXR, P: 1e9 } : mtbMode ? { K: MTBK, R: [], P: MTPER } : { K: SKK, R: SKRL, P: SKPER };
 function skKick(f, u) {
   if (u < 0) return [0, 0];
   if (u < f.LR) { const t = u / f.LR; return [f.H * (.35 * t + .65 * t * t), 1]; }
@@ -442,7 +476,8 @@ function skSurf(x, z) {
       const o = skRail(r, u); if (o > off) { off = o; pad = true; rail = true; rc = XC + r.lat; }
     }
   }
-  return { h: SKS * (z - 40) + off, pad, rail, rc };
+  let dip = 0; if (bmxMode) { const e = bmxExtra(x, s); if (e.p > off) { off = e.p; pad = true; rail = false; } dip = e.d; }
+  return { h: SKS * (z - 40) + off + dip, pad, rail, rc };
 }
 function surf(x, z) {
   if (skiMode) return skSurf(x, z);
@@ -456,13 +491,14 @@ function surf(x, z) {
   return { h: 0, pad: true };
 }
 function landed(sf) {
+  if (bmxMode) lastVy = 0;
   const dv = q => Math.abs(q - Math.round(q / TAU) * TAU), nf = Math.abs(Math.round(trPitch / TAU)), nr = Math.abs(Math.round(trRoll / TAU)), ns = Math.abs(Math.round(trSpin / TAU)), t = airT;
   const bt = .1 * RD().bal, ok = sf.pad && dv(trPitch) < .75 + bt && dv(trRoll) < .75 + bt && dv(trSpin) < 1 + bt;
   trPitch = trRoll = trSpin = 0; airT = 0; rampPitch = 0;
   if (skiMode && sf.rail && ok && t >= .25) { save.money += 100; persist(); shake = .2; toast('Landed on the rail! +$100  Keep grinding ($200/s)'); return; }
   if (t < .35) return;
   if (!ok) { if (skiMode && curKmh() * .621371 <= 10) { toast('Sloppy landing. No money for that jump'); return; } startFall(null); toast('Bad landing! No money for that jump'); return; }
-  const kinds = (nf > 0) + (nr > 0) + (ns > 0), tricks = Math.round((nf * 600 + nr * 400 + ns * 500) * (1 + .25 * Math.max(0, kinds - 1))), ap = skiMode && airKind === 'pop' ? 0 : Math.round(t * (mtbMode ? 500 : 400));
+  const kinds = (nf > 0) + (nr > 0) + (ns > 0), tricks = Math.round((nf * 600 + nr * 400 + ns * 500) * (1 + .25 * Math.max(0, kinds - 1))), ap = skiMode && airKind === 'pop' ? 0 : Math.round(t * (mtbMode || bmxMode ? 500 : 400));
   if (!ap && !tricks) return;
   save.money += ap + tricks; persist(); shake = .4;
   toast('Landed! ' + t.toFixed(1) + 's air  +$' + ap + (tricks ? '  + tricks $' + tricks : ''));
@@ -588,6 +624,35 @@ function skRailMesh(P, r, s0) {
   }
   const gz = 40 - s0 + 2; P.push(prt(CYL(.1, .9, 8), x - 1.2, SKS * (gz - 40) + .45, gz, 0xff6a13), prt(CYL(.1, .9, 8), x + 1.2, SKS * (gz - 40) + .45, gz, 0xff6a13));
 }
+function buildBmx(cx, cz) {
+  const g = new THREE.Group(), ox = cx * C, oz = cz * C, boxes = [], P = [], xl = XC + BMX_X0, xr = XC + BMX_X1, zT = 40 - BMX_S0, zB = 40 - BMX_S1;
+  const gr = new THREE.Mesh(planeG, grassM); gr.rotation.x = -Math.PI / 2; gr.position.set(ox + C / 2, -.01, oz + C / 2); gr.receiveShadow = true; g.add(gr);
+  const x0 = Math.max(ox, xl), x1 = Math.min(ox + C, xr), z0 = Math.max(oz, zB), z1 = Math.min(oz + C, zT);
+  if (x1 > x0 && z1 > z0) {
+    const nx = Math.round(x1 - x0), nz = Math.round(z1 - z0), pos = [], col = [], idx = [], cF = L(0xc6cacf), cB = L(0x9ea4ac), cR = L(0xc2b090), c = new THREE.Color();
+    for (let i = 0; i <= nz; i++) { const z = z0 + (z1 - z0) * i / nz; for (let j = 0; j <= nx; j++) {
+      const x = x0 + (x1 - x0) * j / nx, y = skSurf(x, z).h; pos.push(x, y + .02, z);
+      c.copy(cF).lerp(cB, clamp(-y / 1.2, 0, 1)).lerp(cR, clamp(y / .5, 0, 1)).multiplyScalar(((Math.floor(x / 10) + Math.floor(z / 10)) & 1) ? .96 : 1); col.push(c.r, c.g, c.b);
+    } }
+    for (let i = 0; i < nz; i++) for (let j = 0; j < nx; j++) { const a = i * (nx + 1) + j, b = a + nx + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
+    const geo = new THREE.BufferGeometry(); geo.setIndex(idx); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, propM); m.receiveShadow = true; g.add(m);
+  }
+  const wall = (a0, a1, b0, b1) => {
+    const a = Math.max(a0, ox), b = Math.min(a1, ox + C), c0 = Math.max(b0, oz), d0 = Math.min(b1, oz + C); if (b <= a || d0 <= c0) return;
+    const mx = (a + b) / 2, mz = (c0 + d0) / 2; boxes.push({ x: mx, z: mz, hx: (b - a) / 2, hz: (d0 - c0) / 2 });
+    P.push(prt(BOX(b - a, 2.4, d0 - c0), mx, 1.2, mz, 0x7b8088), prt(BOX(b - a + .1, .16, d0 - c0 + .1), mx, 2.46, mz, 0x30343a), prt(BOX(b - a + .04, .5, d0 - c0 + .04), mx, 1.5, mz, ((cx + cz) & 1) ? 0xd62828 : 0x1d4ed8));
+  };
+  wall(xl - .3, xl + .3, zB - .3, zT + .3); wall(xr - .3, xr + .3, zB - .3, zT + .3); wall(xl - .3, xr + .3, zT - .3, zT + .3); wall(xl - .3, xr + .3, zB - .3, zB + .3);
+  const inC = (x, z) => x >= ox && x < ox + C && z >= oz && z < oz + C;
+  for (const b of BMXB) { const bx0 = XC + b.x, bz0 = 40 - b.s; if (inC(bx0, bz0)) P.push(prt(new THREE.TorusGeometry(b.R, .08, 8, 56), bx0, .05, bz0, 0xaab0b8, Math.PI / 2, 0, 0)); }
+  for (const q of BMXQ) {
+    if (q.k === 'e') { const zz = 40 - (q.s + q.R * .906); if (inC(XC, zz)) P.push(prt(CYL(.07, q.hw * 2, 8), XC, q.R * .577 + .05, zz, 0xaab0b8, 0, 0, Math.PI / 2)); }
+    else { const xx = XC + q.x0 + q.R * .906, zm = 40 - (q.s0 + q.s1) / 2; if (inC(xx, zm)) P.push(prt(CYL(.07, q.s1 - q.s0, 8), xx, q.R * .577 + .05, zm, 0xaab0b8, Math.PI / 2, 0, 0)); }
+  }
+  const sLo = 40 - oz - C, sHi = 40 - oz; for (const r of BMXR) if (r.s > sLo && r.s <= sHi) skRailMesh(P, r, r.s);
+  finish(g, P); scene.add(g); return { g, boxes };
+}
 function skiFeatures(cz, g, P) {
   const T = skT(), oz = cz * C, sLo = 40 - oz - C, sHi = 40 - oz;
   for (let k = Math.max(0, Math.floor(sLo / T.P) - 1); k <= Math.floor(sHi / T.P) + 1; k++) {
@@ -661,12 +726,12 @@ function wheelGeo(r, w, kind) {
     for (let k = 0; k < 6; k++) { const ph = k * Math.PI / 3 + .2, rad = (rimR + .05) / 2; for (const sd of [-1, 1]) P.push(prt(BOX(.034, rimR - .05, .014), Math.cos(ph) * rad, Math.sin(ph) * rad, sd * w * .3, 0x8f959d, 0, 0, ph - Math.PI / 2)); }
     P.push(prt(new THREE.CylinderGeometry(.11, .11, w * .95, 20), 0, 0, 0, 0x2d3036, Math.PI / 2, 0, 0)); P.push(prt(new THREE.CylinderGeometry(.04, .04, w * 1.1, 10), 0, 0, 0, 0x9aa0a8, Math.PI / 2, 0, 0));
   } else {
-    const ns = kind === 'moto' || kind === 'mtb' ? 32 : 18; for (let k = 0; k < ns; k++) { const ph = k * Math.PI * 2 / ns, rad = (rimR + .045) / 2; for (const sd of [-1, 1]) P.push(prt(BOX(.005, rimR - .045, .005), Math.cos(ph) * rad, Math.sin(ph) * rad, sd * w * .2, 0xb4b9c1, 0, 0, ph - Math.PI / 2 + sd * .12)); }
+    const ns = kind === 'moto' || kind === 'mtb' || kind === 'bmx' ? 32 : 18; for (let k = 0; k < ns; k++) { const ph = k * Math.PI * 2 / ns, rad = (rimR + .045) / 2; for (const sd of [-1, 1]) P.push(prt(BOX(.005, rimR - .045, .005), Math.cos(ph) * rad, Math.sin(ph) * rad, sd * w * .2, 0xb4b9c1, 0, 0, ph - Math.PI / 2 + sd * .12)); }
     P.push(prt(new THREE.CylinderGeometry(.04, .04, w * .9, 12), 0, 0, 0, 0x6e737b, Math.PI / 2, 0, 0));
     for (const sd of [-1, 1]) P.push(prt(new THREE.CylinderGeometry(.06, .06, .012, 14), 0, 0, sd * w * .22, 0x8f959d, Math.PI / 2, 0, 0));
   }
-  P.push(prt(new THREE.CylinderGeometry(rimR * .62, rimR * .62, .008, 28), 0, 0, w * .4, 0x7d838b, Math.PI / 2, 0, 0));
-  for (let k = 0; k < 8; k++) { const ph = k * Math.PI / 4; P.push(prt(BOX(.012, rimR * .22, .01), Math.cos(ph) * rimR * .45, Math.sin(ph) * rimR * .45, w * .4, 0x24272b, 0, 0, ph - Math.PI / 2)); }
+  if (kind !== 'bmx') { P.push(prt(new THREE.CylinderGeometry(rimR * .62, rimR * .62, .008, 28), 0, 0, w * .4, 0x7d838b, Math.PI / 2, 0, 0));
+  for (let k = 0; k < 8; k++) { const ph = k * Math.PI / 4; P.push(prt(BOX(.012, rimR * .22, .01), Math.cos(ph) * rimR * .45, Math.sin(ph) * rimR * .45, w * .4, 0x24272b, 0, 0, ph - Math.PI / 2)); } }
   P.push(prt(BOX(.012, .035, .012), rimR, 0, w * .3, 0xd9dde3));
   const g = mergeParts(P); g.rotateY(Math.PI / 2); wheelCache[key] = g; return g;
 }
@@ -829,6 +894,25 @@ function buildMtb() {
   lb(V(0, .75, 0), V(0, .46, .11), .02, metalM); coil(V(0, .74, 0), V(0, .47, .11), .036, 11, accM, .009); bx(.05, .03, .05, dmetalM, 0, .76, -.01); bx(.05, .03, .05, dmetalM, 0, .44, .12);
   return { hip: V(0, 1.02, .3), sh: V(0, 1.44, .04), head: V(0, 1.68, -.1), hands: [V(-.36, 1.04, -.35), V(.36, 1.04, -.35)], feet: [V(-.17, .345, -.105), V(.17, .345, .245)], knees: [V(-.2, .72, .1), V(.2, .7, .12)] };
 }
+function buildBmxBike() {
+  const fr = .255, zf = -.5, zr = .5, BB = V(0, .28, .05);
+  axle.y = fr; axle.z = zr; makeWheel(fr, .052, 0, fr, zf, 'bmx'); makeWheel(fr, .052, 0, fr, zr, 'bmx');
+  lb(V(0, .56, -.4), V(0, .66, -.38), .03, accM); lb(V(0, .64, -.37), V(0, .62, .17), .024, accM); lb(V(0, .56, -.39), BB, .028, accM); lb(BB, V(0, .62, .17), .022, accM);
+  lb(V(0, .6, .17), V(0, .68, .22), .014, dmetalM); bx(.1, .035, .2, blackM, 0, .7, .23); bx(.05, .05, .06, accM, 0, .6, -.38);
+  lb(V(0, .55, -.41), V(0, .73, -.36), .012, metalM); bx(.06, .04, .05, dmetalM, 0, .73, -.36);
+  lb(V(-.2, .88, -.397), V(.2, .88, -.397), .01, dmetalM);
+  for (const s of [-1, 1]) {
+    lb(V(s * .06, .58, -.41), V(s * .05, fr, zf), .014, blackM); bx(.03, .04, .04, metalM, s * .05, fr, zf);
+    lb(V(s * .08, .73, -.36), V(s * .31, .97, -.42), .011, dmetalM); cy(.016, .016, .11, blackM, s * .37, .975, -.42);
+    lb(V(s * .04, .28, .05), V(s * .05, fr, zr), .013, accM); lb(V(s * .05, fr, zr), V(s * .035, .6, .19), .011, accM); bx(.025, .04, .04, accM, s * .05, fr, zr);
+    cy(.018, .018, .09, metalM, s * .09, fr, zf); cy(.018, .018, .09, metalM, s * .09, fr, zr);
+    const zp = s < 0 ? -.115 : .215; lb(V(s * .07, .28, .05), V(s * .07, .28, zp), .014, dmetalM); bx(.1, .022, .095, blackM, s * .15, .28, zp);
+  }
+  cy(.075, .075, .01, dmetalM, -.065, .28, .05); ring(.075, .006, metalM, -.065, .28, .05, 'x'); cy(.035, .035, .012, metalM, -.045, fr, zr);
+  lb(V(-.065, .355, .05), V(-.045, .29, zr), .004, dmetalM); lb(V(-.065, .205, .05), V(-.045, .22, zr), .004, dmetalM);
+  bx(.1, .03, .03, dmetalM, 0, .47, .52); lb(V(.04, .88, -.4), V(.0, .5, .5), .004, blackM);
+  return { hip: V(0, .92, .14), sh: V(0, 1.36, -.1), head: V(0, 1.62, -.2), hands: [V(-.36, .975, -.42), V(.36, .975, -.42)], feet: [V(-.15, .295, -.115), V(.15, .295, .215)], knees: [V(-.2, .58, 0), V(.2, .58, .05)] };
+}
 function enhanceBike2(d, ht, fr, rr, zf, zr, barZ, ty, by) {
   for (const s of [-1, 1]) {
     bx(.004, .12 * ht, .06, blackM, s * .168, .62 * ht, -.14).rotation.x = .5; bx(.004, .1 * ht, .05, blackM, s * .168, .55 * ht, -.02).rotation.x = -.4; bx(.004, .03, .22, stripM, s * .168, .5 * ht, -.04);
@@ -870,10 +954,10 @@ function applyVehicle() {
   while (pivot.children.length) pivot.remove(pivot.children[0]);
   wheels.length = 0;
   { const r = RD(); jackM.color.copy(L(r.shirt)); pantM.color.copy(L(r.pants)); helmM.color.copy(L(r.hc)); bagM.color.copy(L(r.bagc)); }
-  if (skiMode) { accM.color.copy(L(GU().c || (isMtb() ? MTBCOL : SKICOL)[gearTier()])); accM.emissive.setHex(0); dashMesh = null;
-    try { const P0 = isMtb() ? buildMtb() : isBoard() ? buildBoard() : buildSkis(), n0 = pivot.children.length; buildRider(P0); headL = P0.head;
+  if (skiMode) { accM.color.copy(L(GU().c || (isBmx() ? BMXCOL : isMtb() ? MTBCOL : SKICOL)[gearTier()])); accM.emissive.setHex(0); dashMesh = null;
+    try { const P0 = isBmx() ? buildBmxBike() : isMtb() ? buildMtb() : isBoard() ? buildBoard() : buildSkis(), n0 = pivot.children.length; buildRider(P0); headL = P0.head;
       if (isBoard()) { const sub = new THREE.Group(); for (const k of pivot.children.slice(n0)) sub.add(k); sub.rotation.y = Math.PI / 2; pivot.add(sub); }
-      if (isMtb()) makeDash(P0.hands[0]); } catch (e) { fail(e); } return; }
+      if (isMtb() || isBmx()) makeDash(P0.hands[0]); } catch (e) { fail(e); } return; }
   const d = VEH[save.eq], u = UP(save.eq), ac = L(u.c || d.acc);
   deckM.color.copy(L(d.deck)); accM.color.copy(ac); accM.emissive.copy(ac).multiplyScalar(.1 * (u.l || 0));
   if ((u.l || 0) >= 3) deckM.color.lerp(ac, .12);
@@ -904,8 +988,8 @@ function vehRow(i) {
     (save.owned[i] ? (save.eq === i ? '<span>Equipped</span>' : '<button onclick="equip(' + i + ')">Equip</button>') : '<button ' + (save.money < d.p ? 'disabled' : '') + ' onclick="buy(' + i + ')">$' + d.p.toLocaleString() + '</button>') + '</div>';
 }
 function openSkiShop() {
-  const mt = isMtb(), bd = isBoard(), G = gearList(), cur = gearTier();
-  show('<h2>' + (mt ? 'Bike Shop' : 'Ski Shop') + '</h2><p>Money: $' + save.money.toLocaleString() + '</p>' + (mt ? '' : '<div><button class="act" style="margin-right:8px;opacity:' + (bd ? .45 : 1) + '" onclick="setGear(\'ski\')">Skis</button><button class="act" style="opacity:' + (bd ? 1 : .45) + '" onclick="setGear(\'board\')">Snowboards</button></div>') + '<p><small>Better ' + (mt ? 'bikes' : bd ? 'boards' : 'skis') + ' glide faster and hold more speed.</small></p>' + G.map((k, i) => '<div class="row"><div><b>' + (i + 1) + '. ' + k[0] + '</b><br><small>Tier ' + (i + 1) + ' of 10</small></div>' + (cur === i ? '<span>Using</span>' : gearOwned(i) ? '<button onclick="skiEquip(' + i + ')">Use</button>' : '<button ' + (save.money < k[1] ? 'disabled' : '') + ' onclick="skiBuy(' + i + ')">$' + k[1].toLocaleString() + '</button>') + '</div>').join('') + '<button class="act" onclick="openCodes()">Codes</button><br><button class="act" style="margin-top:10px" onclick="openAdmin()">Admin Code</button>');
+  const mt = isMtb() || isBmx(), bd = isBoard(), G = gearList(), cur = gearTier();
+  show('<h2>' + (isBmx() ? 'BMX Shop' : mt ? 'Bike Shop' : 'Ski Shop') + '</h2><p>Money: $' + save.money.toLocaleString() + '</p>' + (mt ? '' : '<div><button class="act" style="margin-right:8px;opacity:' + (bd ? .45 : 1) + '" onclick="setGear(\'ski\')">Skis</button><button class="act" style="opacity:' + (bd ? 1 : .45) + '" onclick="setGear(\'board\')">Snowboards</button></div>') + '<p><small>Better ' + (mt ? 'bikes' : bd ? 'boards' : 'skis') + ' glide faster and hold more speed.</small></p>' + G.map((k, i) => '<div class="row"><div><b>' + (i + 1) + '. ' + k[0] + '</b><br><small>Tier ' + (i + 1) + ' of 10</small></div>' + (cur === i ? '<span>Using</span>' : gearOwned(i) ? '<button onclick="skiEquip(' + i + ')">Use</button>' : '<button ' + (save.money < k[1] ? 'disabled' : '') + ' onclick="skiBuy(' + i + ')">$' + k[1].toLocaleString() + '</button>') + '</div>').join('') + '<button class="act" onclick="openCodes()">Codes</button><br><button class="act" style="margin-top:10px" onclick="openAdmin()">Admin Code</button>');
 }
 function skiBuy(i) { const G = gearList(); if (save.money < G[i][1] || gearOwned(i)) return; save.money -= G[i][1]; (save[gearArr()] = save[gearArr()] || [])[i] = 1; save[gearKey()] = i; persist(); applyVehicle(); openSkiShop(); }
 function skiEquip(i) { save[gearKey()] = i; persist(); applyVehicle(); openSkiShop(); }
@@ -964,7 +1048,7 @@ function setUnits(u) { save.units = u; persist(); openSettings(); }
 let keysHtml;
 function updateSide() {
   const kEl = $('keys'); if (keysHtml === undefined) keysHtml = kEl.innerHTML; $('gas').textContent = skiMode ? 'GO' : 'GAS'; $('brk').textContent = skiMode ? 'STOP' : 'BRAKE';
-  kEl.innerHTML = mtbMode ? 'W: go &nbsp; S: stop &nbsp; A D or arrows: steer<br>Space: POP (pop off a jump for more air)<br>In the air: left/right spin, up/down flip &nbsp; Let go to line up your landing' : skiMode ? 'W: go &nbsp; S: stop &nbsp; A D or arrows: steer<br>Space: POP (hop onto rails, pop off a kicker for more air)<br>In the air: left/right spin that way, up/down flip &nbsp; Let go to line up your landing' : keysHtml; $('pop').style.display = skiMode ? '' : 'none'; $('q').style.display = !skiMode && bikeShopOpen() ? '' : 'none'; $('gar').textContent = skiMode ? 'Gear' : 'Garage'; for (const id of ['jobb', 'polb', 'boost', 'wheelie']) $(id).style.display = skiMode ? 'none' : ''; $('shopb').textContent = mtbMode ? 'Bike Shop' : skiMode ? 'Ski Shop' : 'Shop'; }
+  kEl.innerHTML = bmxMode ? 'W: pedal &nbsp; S: brake &nbsp; A D or arrows: steer<br>Space: POP (bunny hop, or pop off a lip for more air)<br>In the air: left/right spin, up/down flip &nbsp; Let go to line up your landing' : mtbMode ? 'W: go &nbsp; S: stop &nbsp; A D or arrows: steer<br>Space: POP (pop off a jump for more air)<br>In the air: left/right spin, up/down flip &nbsp; Let go to line up your landing' : skiMode ? 'W: go &nbsp; S: stop &nbsp; A D or arrows: steer<br>Space: POP (hop onto rails, pop off a kicker for more air)<br>In the air: left/right spin that way, up/down flip &nbsp; Let go to line up your landing' : keysHtml; $('pop').style.display = skiMode ? '' : 'none'; $('q').style.display = !skiMode && bikeShopOpen() ? '' : 'none'; $('gar').textContent = skiMode ? 'Gear' : 'Garage'; for (const id of ['jobb', 'polb', 'boost', 'wheelie']) $(id).style.display = skiMode ? 'none' : ''; $('shopb').textContent = bmxMode ? 'BMX Shop' : mtbMode ? 'Bike Shop' : skiMode ? 'Ski Shop' : 'Shop'; }
 function openCodes() {
   show('<h2>Codes</h2><p>Enter a code and tap Redeem.</p><input id="code" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Code" style="width:100%;box-sizing:border-box;padding:10px;font-size:1rem;border:1px solid #888;border-radius:8px"><button class="act" style="margin-top:10px" onclick="redeem()">Redeem</button><p id="cmsg"></p>');
 }
@@ -987,7 +1071,7 @@ function redeem() {
   persist(); updateSide(); $('cmsg').textContent = m;
 }
 // ---------- maps + restart UI ----------
-const MAPS = { ski: { n: 'Ski Resort', p: 20000, d: 'A 25 degree terrain park with kickers ($400/s of air) and rails ($200/s). Press POP to hop onto rails or pop off a kicker for more air. Ski shop only (skis or snowboards).' }, mtb: { n: 'Mountain Bike Park', p: 30000, d: 'A 25 degree dirt downhill with huge dirt jumps and big landings. Every second of air pays $500. Use POP, flip and spin for tricks. Bike shop has 10 mountain bikes.' }, road: { n: 'Private Road', p: 1000, d: 'An endless, perfectly straight private road for speed testing.' }, jumps: { n: 'Stunt Park', p: 5000, d: 'Huge jumps. Every second of air pays $400 if you land it. Do tricks for bonus cash.' } };
+const MAPS = { ski: { n: 'Ski Resort', p: 20000, d: 'A 25 degree terrain park with kickers ($400/s of air) and rails ($200/s). Press POP to hop onto rails or pop off a kicker for more air. Ski shop only (skis or snowboards).' }, bmx: { n: 'BMX Park', p: 25000, d: 'A big concrete park with bowls, quarter pipes, jump lines, a spine, funboxes, rollers and rails. Pedal with W, brake with S, POP to bunny hop. Every second of air pays $500. Bike shop has 10 BMX bikes.' }, mtb: { n: 'Mountain Bike Park', p: 30000, d: 'A 25 degree dirt downhill with huge dirt jumps and big landings. Every second of air pays $500. Use POP, flip and spin for tricks. Bike shop has 10 mountain bikes.' }, road: { n: 'Private Road', p: 1000, d: 'An endless, perfectly straight private road for speed testing.' }, jumps: { n: 'Stunt Park', p: 5000, d: 'Huge jumps. Every second of air pays $400 if you land it. Do tricks for bonus cash.' } };
 const mapOwned = k => k === 'city' || save.codes.admin || (save.maps && save.maps[k]);
 function openMaps() {
   const row = (n, d, btn) => '<div class="row"><div><b>' + n + '</b><br><small>' + d + '</small></div>' + btn + '</div>';
@@ -997,13 +1081,13 @@ function openMaps() {
 }
 function buyMap(k) { const m = MAPS[k]; if (!m) return; if (!mapOwned(k)) { if (save.money < m.p) return; save.money -= m.p; (save.maps = save.maps || {})[k] = 1; persist(); } setMap(k); }
 function goMap(k) { if (k === 'city' || (MAPS[k] && mapOwned(k))) setMap(k); }
-const ATMO = { city: [0xd9e6f0, 70, 175, 0xfff0d6, 1.15, .7], road: [0xdbe8f4, 140, 480, 0xfff6e4, 1.25, .75], jumps: [0xeadbc3, 100, 320, 0xffcf96, 1.3, .62], ski: [0xe6eef7, 120, 420, 0xfff6ea, 1.2, .85], mtb: [0xcfe3f2, 130, 440, 0xfff1d8, 1.25, .8] };
+const ATMO = { city: [0xd9e6f0, 70, 175, 0xfff0d6, 1.15, .7], road: [0xdbe8f4, 140, 480, 0xfff6e4, 1.25, .75], jumps: [0xeadbc3, 100, 320, 0xffcf96, 1.3, .62], ski: [0xe6eef7, 120, 420, 0xfff6ea, 1.2, .85], mtb: [0xa9c9e8, 130, 460, 0xfff1d8, 1.25, .8], bmx: [0xd3e4f2, 130, 460, 0xfff2dc, 1.25, .8] };
 function setMap(k) {
-  skiMode = k === 'ski' || k === 'mtb'; mtbMode = k === 'mtb'; mtn.visible = peaks.visible = skiMode; if (mtnMat) { mtnMat.map = mtbMode ? dirtTex : snowTex; mtnMat.needsUpdate = true; }
+  skiMode = k === 'ski' || k === 'mtb' || k === 'bmx'; mtbMode = k === 'mtb'; bmxMode = k === 'bmx'; SKS = bmxMode ? 0 : SK25; SKT = Math.atan(SKS); mtn.visible = peaks.visible = skiMode && !bmxMode; if (peakBodyM) { peakBodyM.color.copy(L(mtbMode ? 0x6d7f58 : 0x8d9bb0)); peakCapM.color.copy(L(mtbMode ? 0x4f7346 : 0xf4f8fc)); } if (mtnMat) { mtnMat.map = mtbMode ? dirtTex : snowTex; mtnMat.needsUpdate = true; }
   { const a = ATMO[k] || ATMO.city; scene.fog.color.set(a[0]); scene.fog.near = a[1]; scene.fog.far = a[2]; sunLight.color.copy(L(a[3])); sunLight.intensity = a[4]; hemiL.intensity = a[5]; }
   map = k; for (const [, ch] of chunks) scene.remove(ch.g); chunks.clear(); for (const c of traffic) scene.remove(c.g); traffic.length = 0;
   clearCops(); pol.active = false; $('flash').style.display = 'none'; job.on = false; job.dest = null; marker.visible = false;
-  px = k === 'city' ? 0 : XC; pz = k === 'jumps' ? 20 : k === 'road' ? 40 : (k === 'ski' || k === 'mtb') ? 30 : 0; h = k === 'city' ? -Math.PI * .75 : 0; camH = h;
+  px = k === 'city' ? 0 : XC; pz = k === 'jumps' ? 20 : k === 'road' ? 40 : (k === 'ski' || k === 'mtb' || k === 'bmx') ? 30 : 0; h = k === 'city' ? -Math.PI * .75 : 0; camH = h;
   v = 0; kx = kz = 0; py = 0; vy = 0; air = false; airT = 0; trPitch = trRoll = trSpin = 0; rampPitch = 0; lastVy = 0; fallT = 0; fallRoll = 0; lcx = lcz = 1e9; trafficInit = false;
   if (wheel.on) endWheelie(); applyVehicle(); updateSide(); closeModal(); toast(k === 'city' ? 'Back in the city' : MAPS[k].n);
 }
@@ -1216,9 +1300,9 @@ function update(dt) {
   const falling = fallT > 0;
   const raw = falling ? 0 : clamp(keys.up - keys.down + stick.y, -1, 1), boosting = !falling && boostT > 0, th = boosting ? 1 : raw, s = falling ? 0 : clamp(keys.right - keys.left + stick.x, -1, 1);
   const maxV = (boosting ? Math.max(S.v, boostBase * 1.45) : S.v) * (wheel.on ? .85 : 1) * (1 + .03 * RD().fit), acc = S.a * (boosting ? 2 : 1) * (1 + .03 * RD().fit);
-  if (skiMode) { if (!air) { v += (8 * (1 + .04 * RD().fit) * Math.cos(h) - (.0115 - .0006 * gearTier() - .0005 * (GU().w || 0)) * v * Math.abs(v)) * dt; if (th < 0) v -= Math.min(Math.abs(v), 24 * dt); else if (th > 0 && v < 10) v += 12 * dt; v -= Math.abs(s) * v * .1 * dt; } } else if (air) { } else if (th > 0) v += th * acc * dt; else if (th < 0) v += th * (wheel.on ? 7 : 22) * dt; else v -= Math.sign(v) * Math.min(Math.abs(v), (falling ? 16 : 6) * dt);
-  if (v > maxV) v = Math.max(maxV, v - 25 * dt); if (v < -6) v = -6; if (skiMode && v < 0) v = 0;
-  if (!air) { if (skiMode) h = clamp(h - s * 1.9 * (1 + .06 * (GU().e || 0)) * (.55 + .45 * Math.min(1, v / 12)) * dt, -1.35, 1.35); else h -= s * 2.1 * Math.min(1, Math.abs(v) / 6) / (1 + Math.abs(v) / 45) * (v < 0 ? -1 : 1) * dt; }
+  if (skiMode) { if (!air) { v += (8 * (1 + .04 * RD().fit) * Math.cos(h) - (.0115 - .0006 * gearTier() - .0005 * (GU().w || 0)) * v * Math.abs(v)) * dt; if (bmxMode) { const bv = 10 + .4 * gearTier() + .4 * (GU().w || 0) + .2 * RD().fit; if (th > 0 && v < bv) v += 6 * dt; else if (th < 0) v -= Math.sign(v) * Math.min(Math.abs(v), 20 * dt); v -= Math.sin(skPitchAt()) * 9.8 * dt; v -= v * (.1 + .004 * Math.abs(v)) * dt; v -= Math.abs(s) * v * .03 * dt; } else { if (th < 0) v -= Math.min(Math.abs(v), 24 * dt); else if (th > 0 && v < 10) v += 12 * dt; v -= Math.abs(s) * v * .1 * dt; } } } else if (air) { } else if (th > 0) v += th * acc * dt; else if (th < 0) v += th * (wheel.on ? 7 : 22) * dt; else v -= Math.sign(v) * Math.min(Math.abs(v), (falling ? 16 : 6) * dt);
+  if (v > maxV) v = Math.max(maxV, v - 25 * dt); if (v < -6) v = -6; if (skiMode && !bmxMode && v < 0) v = 0;
+  if (!air) { if (bmxMode) h -= s * 2.5 * (1 + .06 * (GU().e || 0)) * Math.min(1, Math.abs(v) / 4) * (v < 0 ? -1 : 1) * dt; else if (skiMode) h = clamp(h - s * 1.9 * (1 + .06 * (GU().e || 0)) * (.55 + .45 * Math.min(1, v / 12)) * dt, -1.35, 1.35); else h -= s * 2.1 * Math.min(1, Math.abs(v) / 6) / (1 + Math.abs(v) / 45) * (v < 0 ? -1 : 1) * dt; }
   popCd = Math.max(0, popCd - dt);
   if (popReq) {
     popReq = false;
@@ -1227,15 +1311,15 @@ function update(dt) {
       else if (airT < .12 && !popped) { vy += 5.2; popped = true; popCd = .3; airKind = 'jump'; }
     }
   }
-  const ox0 = px, oz0 = pz; px -= Math.sin(h) * v * dt; pz -= Math.cos(h) * v * dt;
+  const ox0 = px, oz0 = pz, cpb = bmxMode && !air ? Math.cos(skPitchAt()) : 1; px -= Math.sin(h) * v * cpb * dt; pz -= Math.cos(h) * v * cpb * dt;
   px += kx * dt; pz += kz * dt; kx *= Math.exp(-3.5 * dt); kz *= Math.exp(-3.5 * dt);
   {
     const skPitch = skiMode ? skPitchAt() : 0;
     let sf = surf(px, pz);
     if (!air) {
       if (skiMode && sf.rail && sf.h - py > .3) { px = ox0; pz = oz0; if (fallT <= 0) { if (curKmh() * .621371 > 10) { v *= .35; shake = .6; startFall(null); toast('Clipped the rail! Hit POP to hop onto it'); } else { v = 0; toast('Bumped the rail. Hit POP to hop onto it'); } } else v = 0; sf = surf(px, pz); }
-      if (sf.h - py > (map === 'jumps' ? 99 : 1.1)) { px = ox0; pz = oz0; v *= skiMode ? .5 : -.25; shake = .5; sf = surf(px, pz); }
-      if (py - sf.h > .45 && dt > 0 && (map === 'jumps' || skiMode)) { air = true; vy = clamp(lastVy, skiMode ? -45 : -10, 40); airT = 0; trPitch = rampPitch; trRoll = 0; trSpin = 0; airKind = 'jump'; popped = false; }
+      if (sf.h - py > (map === 'jumps' || bmxMode ? 99 : 1.1)) { px = ox0; pz = oz0; v *= skiMode ? .5 : -.25; shake = .5; sf = surf(px, pz); }
+      if ((py - sf.h > .45 || (bmxMode && dt > 0 && (sf.h - py) / dt < lastVy - 11 * dt - .06 && lastVy > .8)) && dt > 0 && (map === 'jumps' || skiMode)) { air = true; vy = clamp(lastVy, skiMode ? -45 : -10, bmxMode ? 12 : 40); airT = 0; trPitch = rampPitch; trRoll = 0; trSpin = 0; airKind = 'jump'; popped = false; if (bmxMode) v *= Math.cos(skPitch); }
       else { if (dt > 0) lastVy += ((sf.h - py) / dt - lastVy) * Math.min(1, dt * (skiMode ? 25 : 12)); py = sf.h; if (sf.rail && dt && s === 0 && fallT <= 0) { px += (sf.rc - px) * Math.min(1, dt * 12); h += (0 - h) * Math.min(1, dt * 6); } if (sf.rail && dt && v > 3) { railAcc += 200 * dt; if (railAcc >= 1) { const m = Math.floor(railAcc); railAcc -= m; save.money += m; moneyDirty = true; } emitSpark(); } }
     }
     if (air) {
@@ -1273,12 +1357,12 @@ function update(dt) {
   { const rate = v > .5 && fallT <= 0 ? Math.floor(curKmh() * .621371 / 10) : 0; incAcc += rate * dt; if (incAcc >= 1) { const w = Math.floor(incAcc); incAcc -= w; save.money += w; moneyDirty = true; } persistT += dt; if (moneyDirty && persistT > 2) { persist(); moneyDirty = false; persistT = 0; } $('inc').textContent = rate ? '+$' + rate + '/s for speed' : ''; }
   if (map === 'city') updatePolice(dt);
   if (dt) updateWheelie(dt, Math.max(raw, 0), Math.max(-raw, 0));
-  if (air && dt) { const nf = Math.abs(Math.round(trPitch / TAU)), nr = Math.abs(Math.round(trRoll / TAU)), ns = Math.abs(Math.round(trSpin / TAU)); $('whl').textContent = 'AIR ' + airT.toFixed(1) + 's  +$' + (skiMode && airKind === 'pop' ? 0 : Math.round(airT * (mtbMode ? 500 : 400))) + (nf + nr + ns ? '   ' + (nf ? nf + ' flip ' : '') + (nr ? nr + ' roll ' : '') + (ns ? ns + ' spin' : '') : ''); }
+  if (air && dt) { const nf = Math.abs(Math.round(trPitch / TAU)), nr = Math.abs(Math.round(trRoll / TAU)), ns = Math.abs(Math.round(trSpin / TAU)); $('whl').textContent = 'AIR ' + airT.toFixed(1) + 's  +$' + (skiMode && airKind === 'pop' ? 0 : Math.round(airT * (mtbMode || bmxMode ? 500 : 400))) + (nf + nr + ns ? '   ' + (nf ? nf + ' flip ' : '') + (nr ? nr + ' roll ' : '') + (ns ? ns + ' spin' : '') : ''); }
   for (const w of wheels) w.rotation.x -= v * dt / w.userData.r;
   tilt += (-s * .3 * (skiMode ? 1 : Math.min(1, Math.abs(v) / S.v)) - tilt) * Math.min(1, dt * 8); { const q = wheel.th, cs = Math.cos(q), sn = Math.sin(q); pivot.rotation.set(q, 0, tilt); pivot.position.set(0, axle.y - (axle.y * cs - axle.z * sn), axle.z - (axle.y * sn + axle.z * cs)); }
   tailM.color.setHex(th < 0 ? 0xff2020 : 0x6a1010); bobT += dt; rider.position.set(px, py + (py < .01 ? Math.sin(bobT * 42) * .006 * Math.min(1, Math.abs(v) / S.v) : 0), pz); rider.rotation.set(air ? trPitch : rampPitch, h + (air ? trSpin : 0), fallRoll + (air ? trRoll : 0));
   if (air) { const o = new THREE.Vector3(0, .7, 0); o.sub(o.clone().applyEuler(rider.rotation)); rider.position.add(o); }
-  const lk = keys.look && !air, tgt = lk ? h + Math.PI : skiMode ? h * .45 : h; camH += Math.atan2(Math.sin(tgt - camH), Math.cos(tgt - camH)) * Math.min(1, dt * (lk ? 9 : 4));
+  const lk = keys.look && !air, tgt = lk ? h + Math.PI : skiMode && !bmxMode ? h * .45 : h; camH += Math.atan2(Math.sin(tgt - camH), Math.cos(tgt - camH)) * Math.min(1, dt * (lk ? 9 : 4));
   const back = 8 + Math.max(0, v) * .05;
   const fpA = fpOn && map !== 'ski' && !lk && !!headL;
   skinM.visible = helmM.visible = visorM.visible = hairM.visible = !fpA;
