@@ -122,6 +122,7 @@ const GAS = [
   { type: 'bike', gas: true, est: true, n: 'Honda CRF450R', spec: '449cc 4-stroke, 60 hp', real: 150, p: 90000, v: 60.0, a: 29, deck: 0x151518, acc: 0xc4262e, wb: 1.46, ht: 1.08, fr: 0.31, rr: 0.30, tw: .08 }
 ];
 const VEH = SC.concat(EB, GAS);
+const hcars = [], HW_L = [3.1, 6.7, 10.3], HW_CRASH = 14; let hwInit = false, motoHills = null;
 let skiMode = false, mtbMode = false, bmxMode = false, peakBodyM = null, peakCapM = null, mtnMat = null, snowTex = null, dirtTex = null;
 const SKV = { type: 'ski', n: 'Skis', v: 55, a: 0, real: 140, ht: 1 }, CV = () => skiMode ? SKV : VEH[save.eq];
 for (const d of VEH) { d.v0 = d.v; d.a0 = d.a; d.r0 = d.real; }
@@ -399,7 +400,7 @@ function updateTraffic(dt) {
 }
 const chunks = new Map();
 function build(cx, cz) {
-  if (map === 'moto') return buildMoto(cx, cz); if (map === 'bmx') return buildBmx(cx, cz); if (map === 'ski' || map === 'mtb') return buildSki(cx, cz); if (map === 'road') return buildRoad(cx, cz); if (map === 'jumps') return buildJumps(cx, cz);
+  if (map === 'moto') return buildMoto(cx, cz); if (map === 'hwy') return buildHwy(cx, cz); if (map === 'ski' || map === 'mtb') return buildSki(cx, cz); if (map === 'road') return buildRoad(cx, cz); if (map === 'jumps') return buildJumps(cx, cz);
   const g = new THREE.Group(), r = rng((cx * 73856093) ^ (cz * 19349663) ^ 4242), boxes = [], ox = cx * C, oz = cz * C;
   const pl = new THREE.Mesh(planeG, groundM); pl.rotation.x = -Math.PI / 2; pl.position.set(ox + C / 2, 0, oz + C / 2); pl.receiveShadow = true; g.add(pl);
   for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
@@ -442,41 +443,7 @@ const MTBK = [ // big dirt jumps: ramp, gap, long rounded dirt landing
   { s: 350, LR: 15, H: 5.2, W: 14, lat: 0, hs: 52, hr: 12, hl: 56, hh: 3.2 },
   { s: 520, LR: 13, H: 4.4, W: 14, lat: 0, hs: 44, hr: 10, hl: 46, hh: 2.8 }
 ];
-const BMXK = [ // jump lines (three lanes) down the middle of the park
-  { s: 70, LR: 6, H: 1.4, W: 8, lat: -12, hs: 14, hr: 6, hl: 16, hh: .7 }, { s: 125, LR: 8, H: 2.2, W: 8, lat: -12, hs: 20, hr: 7, hl: 20, hh: 1.0 },
-  { s: 75, LR: 8, H: 2.4, W: 9, lat: 0, hs: 18, hr: 7, hl: 18, hh: 1.1 }, { s: 140, LR: 10, H: 3.2, W: 9, lat: 0, hs: 26, hr: 8, hl: 24, hh: 1.5 },
-  { s: 70, LR: 6, H: 1.4, W: 8, lat: 12, hs: 14, hr: 6, hl: 16, hh: .7 }, { s: 125, LR: 8, H: 2.2, W: 8, lat: 12, hs: 20, hr: 7, hl: 20, hh: 1.0 }
-];
-const BMXR = [
-  { s: 22, len: 18, lat: -12, kind: 'flat' }, { s: 22, len: 16, lat: 12, kind: 'box' },
-  { s: 290, len: 22, lat: -12, kind: 'kink' }, { s: 290, len: 18, lat: 0, kind: 'flat' }, { s: 290, len: 18, lat: 12, kind: 'box' }
-];
-const BMXF = [{ x: -26, s: 32, a: .6, t: 9, b: .6, H: .45, W: 3.2, ledge: 1 }, { x: -26, s: 47, a: .6, t: 7, b: .6, H: .45, W: 3.2, ledge: 1 }, { x: 24, s: 160, a: .6, t: 8, b: .6, H: .45, W: 3.2, ledge: 1 }, { x: 24, s: 173, a: .6, t: 6, b: .6, H: .6, W: 3.2, ledge: 1 }, { x: 24, s: 184, a: .6, t: 8, b: .6, H: .45, W: 3.2, ledge: 1 }, { x: 0, s: 225, a: 7, t: 8, b: 7, H: 1.7, W: 12 }, { x: 0, s: 262, a: 9, t: 0, b: 9, H: 2.4, W: 8 }, { x: -22, s: 235, a: 6, t: 6, b: 6, H: 1.3, W: 10 }, { x: 22, s: 235, a: 6, t: 6, b: 6, H: 1.3, W: 10 }];
-const BMXRO = [{ x: 30, s: 40, len: 90, amp: .65, per: 9, W: 8 }];
-const BMXB = [{ L: [[-36, 98, 19], [-30, 126, 13.5]], D: 3.6 }, { L: [[38, 208, 15], [45, 237, 10]], D: 3.0 }];
-const bowlDepth = (e, D) => { if (e <= 0) return 0; const th = 1.1, Rt = D / (1 - Math.cos(th)), sp = Rt * Math.sin(th); if (e >= sp) return -D; const w = sp - e; return -D + Rt - Math.sqrt(Rt * Rt - w * w); };
-const BMXQ = [{ k: 'e', s: 315, R: 3.4, hw: 50 }, { k: 'x', x0: 50, s0: 20, s1: 150, R: 3.4 }];
-const BMX_X0 = -61, BMX_X1 = 61, BMX_S0 = -8, BMX_S1 = 326;
-const qpH = (u, R) => u <= 0 ? 0 : u <= R * .906 ? R - Math.sqrt(R * R - u * u) : R * .577;
-function bmxExtra(x, s) {
-  const dx = x - XC; let p = 0, d = 0;
-  for (const f of BMXF) {
-    const u = s - f.s; if (u < 0 || u >= f.a + f.t + f.b) continue;
-    const lf = clamp((f.W / 2 + 1.5 - Math.abs(dx - f.x)) / 1.5, 0, 1); if (lf <= 0) continue;
-    const rp = t => .35 * t + .65 * t * t, o = u < f.a ? rp(u / f.a) : u < f.a + f.t ? 1 : rp(1 - (u - f.a - f.t) / f.b); p = Math.max(p, f.H * o * lf);
-  }
-  for (const r of BMXRO) {
-    const u = s - r.s; if (u < 0 || u >= r.len) continue;
-    const lf = clamp((r.W / 2 + 1.5 - Math.abs(dx - r.x)) / 1.5, 0, 1); if (lf <= 0) continue; p = Math.max(p, r.amp * .5 * (1 - Math.cos(2 * Math.PI * u / r.per)) * lf);
-  }
-  for (const b of BMXB) { let e = 0; for (const l of b.L) e += Math.exp((l[2] - Math.hypot(dx - l[0], s - l[1])) / 1.2); if (e > 1e-9) { const ed = 1.2 * Math.log(e); if (ed > 0) d = Math.min(d, bowlDepth(ed, b.D)); } }
-  for (const q of BMXQ) {
-    if (q.k === 'e') { const u = s - q.s; if (u > 0 && u < q.R * .906 + 6.5) p = Math.max(p, qpH(u, q.R) * clamp((q.hw + 1.5 - Math.abs(dx)) / 1.5, 0, 1)); }
-    else { const u = dx - q.x0; if (u > 0 && u < q.R * .906 + 6.5 && s > q.s0 - 1.5 && s < q.s1 + 1.5) p = Math.max(p, qpH(u, q.R) * clamp(Math.min(s - q.s0 + 1.5, q.s1 + 1.5 - s) / 1.5, 0, 1)); }
-  }
-  return { p, d };
-}
-const skT = () => bmxMode ? { K: BMXK, R: BMXR, P: 1e9 } : mtbMode ? { K: MTBK, R: [], P: MTPER } : { K: SKK, R: SKRL, P: SKPER };
+const skT = () => mtbMode ? { K: MTBK, R: [], P: MTPER } : { K: SKK, R: SKRL, P: SKPER };
 function skKick(f, u) {
   if (u < 0) return [0, 0];
   if (u < f.LR) { const t = u / f.LR; return [f.H * (.35 * t + .65 * t * t), 1]; }
@@ -509,7 +476,7 @@ function skSurf(x, z) {
       const o = skRail(r, u); if (o > off) { off = o; pad = true; rail = true; rc = XC + r.lat; }
     }
   }
-  let dip = 0; if (bmxMode) { const e = bmxExtra(x, s); if (e.p > off) { off = e.p; pad = true; rail = false; } dip = e.d; }
+  let dip = 0;
   return { h: SKS * (z - 40) + off + dip, pad, rail, rc };
 }
 function surf(x, z) {
@@ -662,8 +629,8 @@ function skRailMesh(P, r, s0) {
 
 // ---------- motocross track: closed squiggly loop (local coords: x from XC, z from MOTO_CZ) ----------
 const freeAir = () => map === 'jumps' || map === 'moto';
-const MOTO_CZ = 0, MOTO_W = 5.5, MOTO_N = 22, mss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
-const MOTO_P = [[-90, 62], [-45, 66], [0, 60], [45, 66], [88, 58], [104, 30], [88, 6], [50, 14], [10, 4], [-30, 14], [-62, 0], [-70, -24], [-36, -36], [0, -26], [36, -38], [72, -30], [100, -52], [84, -76], [44, -68], [6, -80], [-34, -70], [-74, -78], [-104, -50], [-112, -10], [-108, 30]];
+const MOTO_CZ = 0, MOTO_W = 6, MOTO_N = 22, mss = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const MOTO_P = [[-130, 90], [-85, 98], [-40, 88], [5, 98], [50, 86], [95, 96], [135, 84], [152, 52], [130, 26], [92, 40], [54, 22], [16, 38], [-22, 20], [-60, 36], [-96, 14], [-100, -14], [-62, -28], [-26, -12], [12, -30], [50, -14], [88, -32], [126, -44], [146, -78], [118, -104], [78, -90], [40, -108], [0, -92], [-40, -110], [-80, -94], [-118, -104], [-146, -76], [-158, -36], [-152, 8], [-160, 50]];
 const MOTO = (function () {
   const P = MOTO_P, n = P.length, N = MOTO_N, X = [], Z = [];
   for (let i = 0; i < n; i++) { const a = P[(i + n - 1) % n], b = P[i], c = P[(i + 1) % n], d = P[(i + 2) % n];
@@ -676,15 +643,28 @@ const MOTO = (function () {
   return { X, Z, S, TX, TZ, K, M, L: S[M], grid };
 })();
 const cs = (i, o) => MOTO.S[i * MOTO_N] + o;
-const MOTOF = [ // t tabletop, d double, w whoops, r rollers (arc positions are relative to numbered corners of the loop)
-  { t: 't', s: cs(0, 10), LR: 9, H: 2.2, T: 6, LD: 12 }, { t: 'd', s: cs(1, 5), LR: 8, H: 2.4, G: 14, hh: 1.3, LA: 5, LD: 14 },
-  { t: 'w', s: cs(2, 6), n: 7, per: 4.6, A: .95 }, { t: 't', s: cs(3, 2), LR: 11, H: 3.2, T: 8, LD: 16 },
-  { t: 'r', s: cs(7, 4), n: 3, per: 11, A: 1.4 }, { t: 'd', s: cs(8, 3), LR: 7, H: 2, G: 12, hh: 1.1, LA: 5, LD: 12 },
-  { t: 't', s: cs(12, 4), LR: 9, H: 2.4, T: 6, LD: 12 }, { t: 'w', s: cs(13, 4), n: 6, per: 4.2, A: .9 }, { t: 'd', s: cs(14, 2), LR: 9, H: 2.8, G: 16, hh: 1.4, LA: 5, LD: 15 },
-  { t: 't', s: cs(18, 2), LR: 12, H: 3.4, T: 8, LD: 16 }, { t: 'w', s: cs(19, 6), n: 6, per: 4.6, A: 1 }, { t: 'd', s: cs(20, 0), LR: 9, H: 2.6, G: 18, hh: 1.3, LA: 5, LD: 15 },
-  { t: 'r', s: cs(23, 0), n: 4, per: 10, A: 1.2 }
+const MOTOF = [
+  { t: 't', s: cs(0, 24), LR: 9, H: 2.4, T: 6, LD: 12 },
+  { t: 'd', s: cs(1, 10), LR: 8, H: 2.4, G: 14, hh: 1.3, LA: 5, LD: 14 },
+  { t: 'w', s: cs(2, 12), n: 7, per: 4.6, A: 0.95 },
+  { t: 'x', s: cs(3, 8), n: 3, sp: 12, H: 2.4 },
+  { t: 't', s: cs(4, 6), LR: 12, H: 3.6, T: 8, LD: 16 },
+  { t: 'x', s: cs(9, 8), n: 4, sp: 9, H: 1.6 },
+  { t: 'w', s: cs(10, 10), n: 6, per: 4.2, A: 0.9 },
+  { t: 'd', s: cs(11, 6), LR: 7, H: 2, G: 12, hh: 1.1, LA: 5, LD: 12 },
+  { t: 't', s: cs(12, 8), LR: 9, H: 2.6, T: 6, LD: 12 },
+  { t: 'w', s: cs(16, 8), n: 6, per: 4.4, A: 0.9 },
+  { t: 'd', s: cs(17, 6), LR: 9, H: 2.8, G: 16, hh: 1.4, LA: 5, LD: 15 },
+  { t: 'x', s: cs(18, 8), n: 3, sp: 11, H: 2.2 },
+  { t: 't', s: cs(19, 8), LR: 10, H: 3, T: 6, LD: 14 },
+  { t: 'x', s: cs(24, 6), n: 3, sp: 12, H: 2.8 },
+  { t: 'w', s: cs(25, 10), n: 6, per: 4.6, A: 1 },
+  { t: 'd', s: cs(26, 4), LR: 9, H: 2.8, G: 16, hh: 1.4, LA: 5, LD: 14 },
+  { t: 't', s: cs(27, 6), LR: 9, H: 2.4, T: 6, LD: 12 },
+  { t: 'x', s: cs(28, 2), n: 3, sp: 11, H: 2.2 },
+  { t: 'r', s: cs(31, 2), n: 4, per: 10, A: 1.2 }
 ];
-for (const f of MOTOF) f.len = f.t === 't' ? f.LR + f.T + f.LD : f.t === 'd' ? f.LR + f.G + f.LA + f.LD : f.n * f.per;
+for (const f of MOTOF) f.len = f.t === 't' ? f.LR + f.T + f.LD : f.t === 'd' ? f.LR + f.G + f.LA + f.LD : f.t === 'x' ? f.n * f.sp : f.n * f.per;
 const mez = t => .35 * t + .65 * t * t;
 function motoNear(lx, lz) {
   const M = MOTO, cx = Math.floor(lx / 16), cz = Math.floor(lz / 16); let bi = -1, bd = 1e9;
@@ -700,28 +680,81 @@ function motoH(lx, lz, q) {
   if (lf > 0) for (const f of MOTOF) {
     const u = (((q.s - f.s) % MOTO.L) + MOTO.L) % MOTO.L; if (u >= f.len) continue; let y = 0, rp = false;
     if (f.t === 'w' || f.t === 'r') y = f.A * .5 * (1 - Math.cos(2 * Math.PI * u / f.per));
+    else if (f.t === 'x') { const p = u % f.sp, up = f.sp * .45; y = p < up ? f.H * mez(p / up) : f.H * (1 - mss(0, 1, (p - up) / (f.sp - up))); rp = p < up; }
     else if (u < f.LR) { y = f.H * mez(u / f.LR); rp = true; }
     else if (f.t === 't') y = u < f.LR + f.T ? f.H : f.H * (1 - mss(0, 1, (u - f.LR - f.T) / f.LD));
     else { const g = u - f.LR - f.G; if (g > 0) y = g < f.LA ? f.hh * mez(g / f.LA) : f.hh * (1 - mss(0, 1, (g - f.LA) / f.LD)); }
     y *= lf; if (y > h) { h = y; ramp = rp && y > .2; }
   }
   const e = -q.d * Math.sign(q.k) - W;
-  if (e > 0 && e < 8.5) { const Hb = 1.5 * clamp(Math.abs(q.k) * 28, 0, 1), b = Hb * (e < 3.2 ? mss(0, 3.2, e) : 1 - mss(3.2, 8.5, e)); if (b > h) { h = b; ramp = false; } }
+  if (e > 0 && e < 8.5) { const Hb = 2.1 * clamp(Math.abs(q.k) * 24, 0, 1), b = Hb * (e < 3.2 ? mss(0, 3.2, e) : 1 - mss(3.2, 8.5, e)); if (b > h) { h = b; ramp = false; } }
   return { h, pad: !ramp };
 }
 function motoSurf(x, z) { return motoH(x - XC, z - MOTO_CZ); }
 const motoM = new THREE.MeshLambertMaterial({ vertexColors: true });
+function buildHwy(cx, cz) {
+  const g = new THREE.Group(), r = rng((cx * 31 + cz * 7919) ^ 5533), ox = cx * C, oz = cz * C, boxes = [], P = [];
+  const gr = new THREE.Mesh(planeG, grassM); gr.rotation.x = -Math.PI / 2; gr.position.set(ox + C / 2, 0, oz + C / 2); gr.receiveShadow = true; g.add(gr);
+  const zc = oz + C / 2;
+  if (XC >= ox && XC < ox + C) {
+    P.push(prt(BOX(31, .06, C), XC, .03, zc, 0x34363a), prt(BOX(3.4, .07, C), XC - 13.8, .035, zc, 0x47494e), prt(BOX(3.4, .07, C), XC + 13.8, .035, zc, 0x47494e), prt(BOX(.8, 1, C), XC, .5, zc, 0xb9b9b4), prt(BOX(.55, .12, C), XC, 1.02, zc, 0xa9a9a4));
+    for (const sg of [-1, 1]) { P.push(prt(BOX(.14, .07, C), XC + sg * 1.05, .08, zc, 0xe0b82a), prt(BOX(.2, .07, C), XC + sg * 12.1, .08, zc, 0xf1f1ee), prt(BOX(.18, .5, C), XC + sg * 15.6, .7, zc, 0x9ea3a8));
+      for (const lx of [4.9, 8.5]) for (let z = oz + 2; z < oz + C; z += 9) P.push(prt(BOX(.16, .07, 3.6), XC + sg * lx, .08, z + 1.8, 0xf1f1ee));
+      for (let z = oz + 2; z < oz + C; z += 4) P.push(prt(BOX(.15, .9, .15), XC + sg * 15.6, .45, z, 0x7c8186));
+      boxes.push({ x: XC + sg * 15.6, z: zc, hx: .3, hz: C / 2 }); }
+    boxes.push({ x: XC, z: zc, hx: .45, hz: C / 2 });
+    for (const lz of [oz + 17.5, oz + 52.5]) { P.push(prt(CYL(.13, 9, 7), XC, 4.5, lz, 0x6b7076), prt(BOX(8, .14, .14), XC, 8.9, lz, 0x6b7076), prt(BOX(.9, .16, .4), XC - 4, 8.8, lz, 0xfff2c0), prt(BOX(.9, .16, .4), XC + 4, 8.8, lz, 0xfff2c0)); boxes.push({ x: XC, z: lz, hx: .4, hz: .4 }); }
+    if (r() < .35) { const sz = oz + 12 + r() * 40; for (const sg of [-1, 1]) { P.push(prt(BOX(.4, 7.5, .4), XC + sg * 16.6, 3.7, sz, 0x6b7076)); boxes.push({ x: XC + sg * 16.6, z: sz, hx: .4, hz: .4 }); }
+      P.push(prt(BOX(33.5, .45, .45), XC, 7.4, sz, 0x6b7076), prt(BOX(7, 2.4, .2), XC - 6.7, 6, sz, 0x1f6b3a), prt(BOX(7, 2.4, .2), XC + 6.7, 6, sz, 0x1f6b3a), prt(BOX(5.6, .18, .22), XC - 6.7, 6.3, sz, 0xf1f1ee), prt(BOX(5.6, .18, .22), XC + 6.7, 6.3, sz, 0xf1f1ee)); }
+  }
+  for (let k = 0; k < 14; k++) { const sg = r() < .5 ? -1 : 1, tx = XC + sg * (22 + r() * 80), tz = oz + r() * C, sc = .8 + r() * .9, th = 3 + r() * 3; if (tx < ox || tx >= ox + C) continue;
+    P.push(prt(CYL(.22 * sc, th, 7), tx, th / 2, tz, 0x5a4330)); for (let q = 0; q < 4; q++) P.push(prt(new THREE.IcosahedronGeometry(1, 1), tx + (r() - .5) * 2 * sc, th + .5 + q * .55 * sc, tz + (r() - .5) * 2 * sc, [0x3f7a3a, 0x4a8a41, 0x356b33][(r() * 3) | 0], r() * 3, r() * 3, 0, (1.2 + r() * .7) * sc)); boxes.push({ x: tx, z: tz, hx: .5, hz: .5 }); }
+  finish(g, P); scene.add(g); return { g, boxes };
+}
+function hwSpawn(init) {
+  for (let t = 0; t < 24; t++) {
+    const dir = Math.random() < .5 ? 1 : -1, k = (Math.random() * 3) | 0, x = XC - dir * HW_L[k], z = pz + (init ? (Math.random() - .5) * 440 : (Math.random() < .5 ? -1 : 1) * (210 + Math.random() * 40));
+    if (Math.abs(x - px) < 3 && Math.abs(z - pz) < 40) continue; let ok = true; for (const c of hcars) if (Math.abs(c.x - x) < .5 && Math.abs(c.z - z) < 18) { ok = false; break; } if (!ok) continue;
+    const base = dir < 0 ? [34, 28, 22][k] : [31, 27, 23][k], sp = base + Math.random() * 5 - 2.5, q = Math.random(), st = q < .34 ? 'sedan' : q < .58 ? 'suv' : q < .78 ? 'hatch' : q < .9 ? 'pickup' : 'van';
+    const gg = makeCar(st, carCols[(Math.random() * carCols.length) | 0], true); gg.rotation.y = dir > 0 ? -Math.PI / 2 : Math.PI / 2; gg.position.set(x, 0, z); scene.add(gg);
+    hcars.push({ g: gg, x, z, dir, sp, hl: gg.userData.hl, wheels: gg.userData.wheels, wr: gg.userData.wr, md: 99, rm: 0, was: false, hit: false }); return true;
+  } return false;
+}
+const hsp = [], hspG = new THREE.BoxGeometry(.07, .07, .07), hspM = new THREE.MeshBasicMaterial({ color: 0xffc24a, fog: false });
+function hwSparks(x, y, z, n) { for (let i = 0; i < n; i++) { const m = new THREE.Mesh(hspG, hspM); m.position.set(x, y, z); scene.add(m); hsp.push({ m, vx: (Math.random() - .5) * 7, vy: 1.5 + Math.random() * 4, vz: (Math.random() - .5) * 7, t: .35 + Math.random() * .3 }); } }
+function hwStep(dt) {
+  if (dt > 0) for (let i = hsp.length - 1; i >= 0; i--) { const p = hsp[i]; p.t -= dt; p.vy -= 14 * dt; p.m.position.x += p.vx * dt; p.m.position.y = Math.max(.02, p.m.position.y + p.vy * dt); p.m.position.z += p.vz * dt; if (p.t <= 0) { scene.remove(p.m); hsp.splice(i, 1); } }
+  if (map !== 'hwy' || !(dt > 0)) return;
+  let n = 0; while (hcars.length < 34 && n++ < 8) if (!hwSpawn(!hwInit)) break; hwInit = true;
+  const pvx = -Math.sin(h) * v, pvz = -Math.cos(h) * v;
+  for (let i = hcars.length - 1; i >= 0; i--) {
+    const c = hcars[i]; c.z += c.dir * c.sp * dt; c.g.position.set(c.x, 0, c.z); for (const w of c.wheels) w.rotation.z -= c.sp * dt / c.wr;
+    if (Math.abs(c.z - pz) > 260 || Math.abs(c.x - px) > 150) { scene.remove(c.g); hcars.splice(i, 1); continue; }
+    const nx = clamp(px, c.x - .72, c.x + .72), nz = clamp(pz, c.z - c.hl * .82, c.z + c.hl * .82), dx = px - nx, dz = pz - nz, d = Math.hypot(dx, dz), rel = Math.hypot(pvx, pvz - c.dir * c.sp);
+    if (d < .62) {
+      if (d > 1e-4) { const k = (.62 - d) / d; px += dx * k; pz += dz * k; } else px += px > c.x ? .62 : -.62;
+      if (!c.hit || (c.sp0 = (c.sp0 || 0) + dt) > .12) { c.sp0 = 0; hwSparks(nx, .45 + Math.random() * .3, nz, rel > HW_CRASH ? 16 : 7); }
+      c.hit = true;
+      if (rel > HW_CRASH && fallT <= 0 && fallCool <= 0) startFall({ axisX: false, dir: c.dir }); else if (fallT <= 0) { v *= 1 - Math.min(.4, dt * 5); shake = Math.max(shake, .25); }
+    }
+    if (Math.abs(c.z - pz) < 14 && Math.abs(c.x - px) < 7) { c.was = true; c.md = Math.min(c.md, d); c.rm = Math.max(c.rm, rel); }
+    else if (c.was) { c.was = false; if (c.md < 2.1 && !c.hit && c.rm > 9 && Math.abs(v) > 6 && fallT <= 0) { save.money += 500; persist(); shake = Math.max(shake, .3); toast('Near miss! +$500'); } c.md = 99; c.rm = 0; c.hit = false; }
+  }
+}
+function makeHills() { motoHills = new THREE.Group(); const r = rng(777), cols = [0x6f8068, 0x7b8a72, 0x667a74, 0x8a8f78];
+  for (let i = 0; i < 20; i++) { const a = i / 20 * Math.PI * 2 + r() * .2, d = 380 + r() * 70, w = 120 + r() * 90, hg = 45 + r() * 75, m = new THREE.Mesh(new THREE.ConeGeometry(w, hg, 9), new THREE.MeshLambertMaterial({ color: cols[i & 3], flatShading: true })); m.position.set(XC + Math.cos(a) * d, hg / 2 - 2, MOTO_CZ + Math.sin(a) * d); m.rotation.y = r() * 3; motoHills.add(m); }
+  scene.add(motoHills); }
 function buildMoto(cx, cz) {
   const g = new THREE.Group(), r = rng((cx * 31 + cz * 7919) ^ 9191), ox = cx * C, oz = cz * C, boxes = [], P = [], lx0 = ox - XC, lz0 = oz - MOTO_CZ, W = MOTO_W;
   const inC = (x, z) => x >= ox && x < ox + C && z >= oz && z < oz + C, hAt = (lx, lz) => motoH(lx, lz).h;
-  if (!(lx0 + C > -175 && lx0 < 135 && lz0 + C > -118 && lz0 < 108)) { const gr = new THREE.Mesh(planeG, grassM); gr.rotation.x = -Math.PI / 2; gr.position.set(ox + C / 2, 0, oz + C / 2); gr.receiveShadow = true; g.add(gr); }
+  if (!(lx0 + C > -240 && lx0 < 182 && lz0 + C > -140 && lz0 < 120)) { const gr = new THREE.Mesh(planeG, grassM); gr.rotation.x = -Math.PI / 2; gr.position.set(ox + C / 2, 0, oz + C / 2); gr.receiveShadow = true; g.add(gr); }
   else {
     const n = 56, st = C / n, pos = [], col = [], idx = [], c = new THREE.Color(), cTr = L(0xb9693b), cTr2 = L(0xd29560), cRut = L(0x93502d), cDust = L(0xcd9a64), cGr = L(0x52823f), cAs = L(0x4a4d52), cBm = L(0xa35c34), cWh = L(0xe8e6e0);
     for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
       const x = ox + j * st, z = oz + i * st, lx = x - XC, lz = z - MOTO_CZ, q = motoNear(lx, lz), y = q ? motoH(lx, lz, q).h : 0; pos.push(x, y, z); c.copy(cDust);
       if (q) { const ad = Math.abs(q.d), tm = 1 - mss(W + .3, W + 2.5, ad); if (tm > 0) { c.lerp(cTr, tm); const rut = Math.abs(Math.sin(q.d * 1.9 + q.s * .02)); c.lerp(cRut, tm * (rut > .88 ? .5 : 0)); c.lerp(cTr2, tm * clamp(y / 3, 0, .45)); } if (ad > W && y > .3) c.lerp(cBm, .45); }
-      const dr = Math.max(-132 - lx, lx - 126, -104 - lz, lz - 96, 0); c.lerp(cGr, mss(0, 12, dr));
-      if (lx > -168 && lx < -134 && lz > -2 && lz < 54) { c.copy(cAs); if (Math.abs(((lz + 2) % 6) - 3) > 2.85 || lx > -135.2 || lx < -166.8) c.lerp(cWh, .8); }
+      const dr = Math.max(-176 - lx, lx - 172, -132 - lz, lz - 112, 0); c.lerp(cGr, mss(0, 12, dr));
+      if (lx > -222 && lx < -188 && lz > -2 && lz < 54) { c.copy(cAs); if (Math.abs(((lz + 2) % 6) - 3) > 2.85 || lx > -189.2 || lx < -220.8) c.lerp(cWh, .8); }
       c.multiplyScalar(1 + (Math.sin(x * .9) * Math.sin(z * 1.1) + Math.sin(x * .13 + z * .09)) * .035 + (Math.sin(x * 3.1 + z * 2.3)) * .012); col.push(c.r, c.g, c.b); }
     for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const a = i * (n + 1) + j, b = a + n + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
     const geo = new THREE.BufferGeometry(); geo.setIndex(idx); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
@@ -729,92 +762,23 @@ function buildMoto(cx, cz) {
   }
   // track marker stakes and start gate
   for (let i = 0; i < MOTO.M; i += 10) { const q = { x: MOTO.X[i] - MOTO.TZ[i] * (W + 1.6), z: MOTO.Z[i] + MOTO.TX[i] * (W + 1.6) }, wx = XC + q.x, wz = MOTO_CZ + q.z; if (!inC(wx, wz)) continue; const y = hAt(q.x, q.z); P.push(prt(BOX(.06, 1.5, .06), wx, y + .75, wz, 0xf2f2f2), prt(BOX(.4, .28, .03), wx, y + 1.35, wz, (i / 10) & 1 ? 0xf26a1b : 0xe8e8e8)); }
-  { const i = 8, tx = MOTO.TX[i], tz = MOTO.TZ[i]; for (const sg of [-1, 1]) { const wx = XC + MOTO.X[i] - tz * sg * (W + .8), wz = MOTO_CZ + MOTO.Z[i] + tx * sg * (W + .8); if (inC(wx, wz)) { P.push(prt(BOX(.35, 4.2, .35), wx, 2.1, wz, 0x2b2e33)); boxes.push({ x: wx, z: wz, hx: .3, hz: .3 }); } }
+  { const i = 3, tx = MOTO.TX[i], tz = MOTO.TZ[i]; for (const sg of [-1, 1]) { const wx = XC + MOTO.X[i] - tz * sg * (W + .8), wz = MOTO_CZ + MOTO.Z[i] + tx * sg * (W + .8); if (inC(wx, wz)) { P.push(prt(BOX(.35, 4.2, .35), wx, 2.1, wz, 0x2b2e33)); boxes.push({ x: wx, z: wz, hx: .3, hz: .3 }); } }
     const mx = XC + MOTO.X[i], mz = MOTO_CZ + MOTO.Z[i]; if (inC(mx, mz)) P.push(prt(BOX(2.2, 1.1, .12), mx, 4, mz, 0xd62828, 0, Math.atan2(tx, tz) + Math.PI / 2, 0), prt(BOX(W * 2 + 1.6, .22, .22), mx, 4.1, mz, 0x2b2e33, 0, Math.atan2(-tz, tx) * 0 + Math.atan2(tx, tz) + Math.PI / 2, 0)); }
+  for (let i = 0; i < MOTO.M; i += 7) { const kk = MOTO.K[i]; if (Math.abs(kk) < .02) continue; const sg = -Math.sign(kk), off = W + 4.6, wx = XC + MOTO.X[i] + (-MOTO.TZ[i]) * sg * off, wz = MOTO_CZ + MOTO.Z[i] + MOTO.TX[i] * sg * off; if (!inC(wx, wz)) continue; const y = hAt(wx - XC, wz - MOTO_CZ);
+    if ((i / 7) & 1) P.push(prt(CYL(.5, .5, 10), wx, y + .25, wz, 0x1a1a1c), prt(CYL(.5, .5, 10), wx, y + .75, wz, 0x242426), prt(CYL(.5, .5, 10), wx, y + 1.25, wz, 0x1a1a1c)); else P.push(prt(BOX(1.7, .8, .9), wx, y + .4, wz, 0xd7b24a, 0, Math.atan2(MOTO.TX[i], MOTO.TZ[i])), prt(BOX(1.7, .8, .9), wx, y + 1.2, wz, 0xcfa83f, 0, Math.atan2(MOTO.TX[i], MOTO.TZ[i]))); }
   // lodge, trucks, dozers, trees
   const lodge = (lx, lz) => { const wx = XC + lx, wz = MOTO_CZ + lz; if (!inC(wx, wz)) return; P.push(prt(BOX(26, 6, 12), wx, 3, wz, 0x8a6240), prt(BOX(28, .5, 8), wx, 7.2, wz - 3.2, 0x4a2a1c, .55, 0, 0), prt(BOX(28, .5, 8), wx, 7.2, wz + 3.2, 0x4a2a1c, -.55, 0, 0), prt(BOX(5, 3, .2), wx + 6, 1.8, wz + 6.1, 0x2a2420)); boxes.push({ x: wx, z: wz, hx: 13.5, hz: 6.5 }); };
-  lodge(-182, 26);
+  lodge(-238, 26);
+  { const gs = (lx, lz) => { const wx = XC + lx, wz = MOTO_CZ + lz; if (!inC(wx, wz)) return; for (let t = 0; t < 4; t++) P.push(prt(BOX(30, .9, 2.6), wx - t * 2.6, .45 + t * .9, wz, t & 1 ? 0xb8bcc2 : 0xa4a9b0)); P.push(prt(BOX(.3, 4.5, 11), wx - 11, 2.2, wz, 0x2b2e33)); boxes.push({ x: wx - 4, z: wz, hx: 5.6, hz: 15.5 }); }; gs(-196, -60); }
   const truck = (lx, lz, col) => { const wx = XC + lx, wz = MOTO_CZ + lz; if (!inC(wx, wz)) return; P.push(prt(BOX(2.2, 1.6, 3.4), wx, 1.4, wz - 2.6, 0xe8e8ea), prt(BOX(2.4, 1.7, 5.2), wx, 1.6, wz + 1.7, col), prt(BOX(2.6, .25, 9), wx, .6, wz, 0x24262a)); for (const a of [-3, 0, 3]) for (const sg of [-1, 1]) P.push(prt(CYL(.5, .35, 10), wx + sg * 1.15, .5, wz + a, 0x151517, 0, 0, Math.PI / 2)); boxes.push({ x: wx, z: wz, hx: 1.4, hz: 4.6 }); };
-  truck(-150, 8, 0xf4f4f4); truck(-150, 20, 0x2563eb); truck(-150, 44, 0xb3261e);
+  truck(-205, 8, 0xf4f4f4); truck(-205, 20, 0x2563eb); truck(-205, 44, 0xb3261e);
   const dozer = (lx, lz, ry) => { const wx = XC + lx, wz = MOTO_CZ + lz; if (!inC(wx, wz)) return; P.push(prt(BOX(3, 1.4, 4.4), wx, 1.1, wz, 0xe6a817, 0, ry), prt(BOX(2, 1.5, 1.8), wx, 2.4, wz, 0xe6a817, 0, ry), prt(BOX(.6, .9, 4.8), wx - 1.7 * Math.cos(ry), .5, wz + 1.7 * Math.sin(ry), 0x24262a, 0, ry), prt(BOX(.6, .9, 4.8), wx + 1.7 * Math.cos(ry), .5, wz - 1.7 * Math.sin(ry), 0x24262a, 0, ry), prt(BOX(4.2, 1.1, .3), wx + Math.sin(ry) * 3, .9, wz + Math.cos(ry) * 3, 0xc8c8cc, 0, ry)); boxes.push({ x: wx, z: wz, hx: 2.4, hz: 2.4 }); };
-  dozer(-14, 30, .5); dozer(24, 34, 2.2); dozer(112, 12, 1.2);
-  for (let k = 0; k < 60; k++) { const tx = ox + r() * C, tz = oz + r() * C, lx = tx - XC, lz = tz - MOTO_CZ, dr = Math.max(-140 - lx, lx - 136, -112 - lz, lz - 104, 0); if (dr < 3 || (lx > -170 && lx < -125 && lz > -10 && lz < 60) || (lx < -165 && lz > 10 && lz < 45)) continue; if (k > 26) continue; const sc = .8 + r() * .8, th = 3 + r() * 2.5, gcs = [0x3f7a3a, 0x4a8a41, 0x356b33, 0x558f45];
+  dozer(-14, 62, .5); dozer(24, 64, 2.2); dozer(166, 40, 1.2);
+  for (let k = 0; k < 60; k++) { const tx = ox + r() * C, tz = oz + r() * C, lx = tx - XC, lz = tz - MOTO_CZ, dr = Math.max(-182 - lx, lx - 178, -138 - lz, lz - 118, 0); if (dr < 3 || (lx > -250 && lx < -180 && lz > -80 && lz < 60)) continue; if (k > 26) continue; const sc = .8 + r() * .8, th = 3 + r() * 2.5, gcs = [0x3f7a3a, 0x4a8a41, 0x356b33, 0x558f45];
     P.push(prt(CYL(.22 * sc, th, 7), tx, th / 2, tz, 0x5a4330)); for (let q = 0; q < 5; q++) P.push(prt(new THREE.IcosahedronGeometry(1, 1), tx + (r() - .5) * 2.4 * sc, th + .6 + q * .55 * sc + r() * .5, tz + (r() - .5) * 2.4 * sc, gcs[(r() * 4) | 0], r() * 3, r() * 3, 0, (1.3 + r() * .8) * sc)); boxes.push({ x: tx, z: tz, hx: .5, hz: .5 }); }
   finish(g, P); scene.add(g); return { g, boxes };
 }
 
-function buildBmx(cx, cz) {
-  const g = new THREE.Group(), r = rng((cx * 31 + cz * 7919) ^ 5151), ox = cx * C, oz = cz * C, boxes = [], P = [], xl = XC + BMX_X0, xr = XC + BMX_X1, zT = 40 - BMX_S0, zB = 40 - BMX_S1;
-  const strip = (a0, a1, b0, b1) => { const a = Math.max(a0, ox), b = Math.min(a1, ox + C), c0 = Math.max(b0, oz), d0 = Math.min(b1, oz + C); if (b <= a || d0 <= c0) return;
-    const sg = new THREE.PlaneGeometry(b - a, d0 - c0), mx = (a + b) / 2, mz = (c0 + d0) / 2, uv = sg.attributes.uv, ps = sg.attributes.position;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (mx + ps.getX(i) - ox) / C, (oz + C - (mz - ps.getY(i))) / C);
-    const m = new THREE.Mesh(sg, grassM); m.rotation.x = -Math.PI / 2; m.position.set(mx, -.01, mz); m.receiveShadow = true; g.add(m); };
-  strip(ox - 1, xl, oz - 1, oz + C + 1); strip(xr, ox + C + 1, oz - 1, oz + C + 1); strip(xl, xr, oz - 1, zB); strip(xl, xr, zT, oz + C + 1);
-  const x0 = Math.max(ox, xl), x1 = Math.min(ox + C, xr), z0 = Math.max(oz, zB), z1 = Math.min(oz + C, zT);
-  if (x1 > x0 && z1 > z0) {
-    const nx = Math.round((x1 - x0) * 2), nz = Math.round((z1 - z0) * 2), pos = [], col = [], idx = [], cF = L(0xbdbfc1), cB = L(0x7b7e83), cR = L(0xc7b595), cG = L(0x5f9a48), cT = L(0xa4a7aa), cW = L(0xadb0b3), cP = L(0x5d6f78), cE = L(0x2c2e32), cWh = L(0xf4f1ea), cFt = L(0x383b40), cY = L(0xe0b22a), cTar = L(0x25272b), c = new THREE.Color();
-    const hxm = BMX_X1 - 18, scm = (BMX_S0 + BMX_S1) / 2, hsm = (BMX_S1 - BMX_S0) / 2 - 18;
-    for (let i = 0; i <= nz; i++) { const z = z0 + (z1 - z0) * i / nz; for (let j = 0; j <= nx; j++) {
-      const x = x0 + (x1 - x0) * j / nx, y = skSurf(x, z).h, dx = x - XC, s = 40 - z; pos.push(x, y + .02, z);
-      if (Math.hypot(Math.max(Math.abs(dx) - hxm, 0), Math.max(Math.abs(s - scm) - hsm, 0)) <= 18) {
-        c.copy(cF).lerp(cB, clamp(-y / 3, 0, 1) * .55);
-        if (y > .02 && ((dx > 49 && dx < 62 && s > 18 && s < 152) || (s > 312 && s < 330 && Math.abs(dx) < 52))) { c.lerp(cW, .92); if (Math.floor((dx > 49 && dx < 62 ? s : dx) / 1.2) & 1) c.multiplyScalar(.95); }
-        else {
-          if (y < .02 && y > -.02) {
-            if (Math.abs(dx) < 22 && s > -4 && s < 56) { c.lerp(cP, .6); if (Math.abs(Math.abs(dx) - 21.5) < .5 || Math.abs(s + 1) < .5 || Math.abs(s - 55.5) < .5) c.lerp(cWh, .85); }
-            else if (Math.abs(dx) < 30 && s > 276 && s < 312) { c.lerp(cE, .55); if (Math.abs(Math.abs(dx) - 29.5) < .5 || Math.abs(s - 276.5) < .5 || Math.abs(s - 311.5) < .5) c.lerp(cWh, .85); }
-            else if (Math.abs(Math.abs(dx) - 59.5) < .6) c.lerp(cY, .8);
-          } else c.lerp(cFt, clamp(y / .5, 0, 1) * .65);
-        }
-        for (const b of BMXB) if (y < -b.D + .25) for (let li = 0; li < b.L.length; li++) { const l = b.L[li], an = Math.atan2(s - l[1], dx - l[0]), rr = l[2] * .34 * (1 + .18 * Math.sin(an * 3 + li * 2)), t = clamp((rr - Math.hypot(dx - l[0], s - l[1])) / 1.4, 0, 1); if (t > 0) c.lerp(cT, t * .85); }
-      } else c.copy(cG);
-      if (Math.abs(dx) < 60 && s > -7 && s < 325) { const sx = Math.floor(dx / 6), ss = Math.floor(s / 6), hs = Math.sin(sx * 12.9898 + ss * 78.233) * 43758.5453, hv = hs - Math.floor(hs), fx = dx / 6 - sx, fs = s / 6 - ss, dj = Math.min(fx, 1 - fx, fs, 1 - fs);
-        if (y > .02 && !(dx > 49 && s > 18 && s < 152) && !(s > 312)) { c.multiplyScalar(.93 + hv * .1); if (dj < .045) c.lerp(cTar, .55); const cr = Math.sin(x * .7 + z * 1.9) * Math.sin(x * 1.7 - z * .6); if (cr > .93) c.lerp(cTar, .35); for (const ln of [-12, 0, 12]) if (Math.abs(dx - ln) < .16 && (Math.floor(s / 2.5) & 1)) c.lerp(cWh, .55); }
-        else { c.multiplyScalar(.96 + hv * .07); if (dj < .04) c.multiplyScalar(.78); if (y < .02 && y > -.02 && hv > .93) c.lerp(cTar, .22); } }
-      c.multiplyScalar(1 + (Math.sin(x * .9) + Math.sin(z * 1.3 + x * .4)) * .008 + (Math.sin(x * .11 + z * .07) * Math.sin(z * .13 - x * .05)) * .045 + (Math.sin(x * 2.3) * Math.sin(z * 2.9) + Math.sin(x * 5.1 + z * 4.3)) * .008); col.push(c.r, c.g, c.b);
-    } }
-    for (let i = 0; i < nz; i++) for (let j = 0; j < nx; j++) { const a = i * (nx + 1) + j, b = a + nx + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
-    const geo = new THREE.BufferGeometry(); geo.setIndex(idx); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.computeVertexNormals();
-    const m = new THREE.Mesh(geo, propM); m.receiveShadow = true; g.add(m);
-  }
-  const wall = (a0, a1, b0, b1) => {
-    const a = Math.max(a0, ox), b = Math.min(a1, ox + C), c0 = Math.max(b0, oz), d0 = Math.min(b1, oz + C); if (b <= a || d0 <= c0) return;
-    const mx = (a + b) / 2, mz = (c0 + d0) / 2; boxes.push({ x: mx, z: mz, hx: (b - a) / 2, hz: (d0 - c0) / 2 });
-    P.push(prt(BOX(b - a, .5, d0 - c0), mx, .25, mz, 0xb9bcc1), prt(BOX(b - a + .06, .06, d0 - c0 + .06), mx, .53, mz, 0xaab0b8));
-  };
-  wall(xl - .3, xl + .3, zB - .3, zT + .3); wall(xr - .3, xr + .3, zB - .3, zT + .3); wall(xl - .3, xr + .3, zT - .3, zT + .3); wall(xl - .3, xr + .3, zB - .3, zB + .3);
-  const inC = (x, z) => x >= ox && x < ox + C && z >= oz && z < oz + C;
-  for (const b of BMXB) for (let li = 0; li < b.L.length; li++) {
-    const l = b.L[li], cxw = XC + l[0], czw = 40 - l[1], n = Math.ceil(2 * Math.PI * l[2] / 1.4);
-    for (let k = 0; k < n; k++) {
-      const an = (k + .5) / n * 2 * Math.PI, qx = l[0] + Math.cos(an) * l[2], qs = l[1] + Math.sin(an) * l[2]; let inside = false;
-      for (let lj = 0; lj < b.L.length; lj++) if (lj !== li && Math.hypot(qx - b.L[lj][0], qs - b.L[lj][1]) < b.L[lj][2] * 1.04) inside = true;
-      const wx = cxw + Math.cos(an) * l[2], wz = czw - Math.sin(an) * l[2]; if (!inside && inC(wx, wz)) P.push(prt(CYL(.09, 1.75, 8), wx, .02, wz, 0xb4bbc4, 0, Math.atan2(Math.cos(an), Math.sin(an)) + Math.PI / 2 * 0, Math.PI / 2));
-    }
-  }
-  for (const q of BMXQ) {
-    if (q.k === 'e') { const zz = 40 - (q.s + q.R * .906); if (inC(XC, zz)) P.push(prt(CYL(.07, q.hw * 2, 8), XC, q.R * .577 + .05, zz, 0xaab0b8, 0, 0, Math.PI / 2)); }
-    else { const xx = XC + q.x0 + q.R * .906, zm = 40 - (q.s0 + q.s1) / 2; if (inC(xx, zm)) P.push(prt(CYL(.07, q.s1 - q.s0, 8), xx, q.R * .577 + .05, zm, 0xaab0b8, Math.PI / 2, 0, 0)); }
-  }
-  for (const f of BMXF) if (f.ledge) { const zc = 40 - (f.s + f.a + f.t / 2); if (inC(XC + f.x, zc)) for (const e of [-1, 1]) P.push(prt(BOX(.1, .06, f.t), XC + f.x + e * f.W / 2, f.H + .03, zc, 0xaab0b8)); }
-  const sLo = 40 - oz - C, sHi = 40 - oz; for (const rl of BMXR) if (rl.s > sLo && rl.s <= sHi) skRailMesh(P, rl, rl.s);
-  { const fx = [xl - 1.4, xr + 1.4], banners = [0xd62828, 0x1d4ed8, 0xf2b705, 0x2a9d8f, 0xf4f1ea, 0x7c3aed];
-    for (let q = 0; q < 2; q++) for (let sv = BMX_S0; sv < BMX_S1; sv += 4) { const wz = 40 - (sv + 2), wx = fx[q]; if (!inC(wx, wz)) continue;
-      P.push(prt(BOX(.07, 2.3, .07), wx, 1.15, 40 - sv, 0x3b4047), prt(BOX(.04, .04, 4), wx, 2.25, wz, 0x4a5058), prt(BOX(.04, .04, 4), wx, 1.2, wz, 0x4a5058), prt(BOX(.04, .04, 4), wx, .3, wz, 0x4a5058));
-      if (((sv / 4) | 0) % 3 === 1) P.push(prt(BOX(.03, 1, 3.7), wx + (q ? .06 : -.06), 1.35, wz, banners[(r() * 6) | 0])); }
-    for (let sx = BMX_X0; sx < BMX_X1; sx += 4) for (const ze of [BMX_S0 - 1.4, BMX_S1 + 1.4]) { const wx = XC + sx + 2, wz = 40 - ze; if (!inC(wx, wz)) continue; P.push(prt(BOX(.07, 2.3, .07), XC + sx, 1.15, wz, 0x3b4047), prt(BOX(4, .04, .04), wx, 2.25, wz, 0x4a5058), prt(BOX(4, .04, .04), wx, 1.2, wz, 0x4a5058), prt(BOX(4, .04, .04), wx, .3, wz, 0x4a5058)); }
-    for (const [lx0, ls] of [[-64, 20], [64, 20], [-64, 110], [64, 110], [-64, 220], [64, 220], [-64, 310], [64, 310]]) { const wx = XC + lx0, wz = 40 - ls; if (!inC(wx, wz)) continue; const sg = lx0 < 0 ? 1 : -1;
-      P.push(prt(BOX(.28, 10, .28), wx, 5, wz, 0x585e66), prt(BOX(2.2, .16, .2), wx + sg * 1.0, 10, wz, 0x585e66), prt(BOX(.9, .22, .55), wx + sg * 2.0, 9.9, wz, 0xfff4cf)); boxes.push({ x: wx, z: wz, hx: .3, hz: .3 }); }
-    for (const [bx0, bs] of [[-66, 60], [66, 150], [-66, 250], [66, 290]]) { const wx = XC + bx0, wz = 40 - bs; if (!inC(wx, wz)) continue; const sg = bx0 < 0 ? 1 : -1;
-      P.push(prt(BOX(.5, .08, 2.2), wx, .5, wz, 0x9b6b3d), prt(BOX(.08, .5, 2.2), wx - sg * .25, .8, wz, 0x9b6b3d), prt(BOX(.4, .5, .1), wx, .25, wz - 1, 0x3b4047), prt(BOX(.4, .5, .1), wx, .25, wz + 1, 0x3b4047)); boxes.push({ x: wx, z: wz, hx: .4, hz: 1.2 }); } }
-  for (let k = 0; k < 9; k++) {
-    const tx = ox + r() * C, tz = oz + r() * C, sc = .7 + r() * .7, dxo = Math.max(xl - tx, tx - xr, 0), dzo = Math.max(zB - tz, tz - zT, 0), dd = Math.hypot(dxo, dzo);
-    if (dd < 4) continue;
-    if (k < 5 && dd > 14) { const gcs = [0x3f7a3a, 0x4a8a41, 0x356b33, 0x558f45], th_ = 3 + r() * 2; P.push(prt(CYL(.2 * sc, th_, 7), tx, th_ / 2, tz, 0x5a4330)); for (let q = 0; q < 5; q++) P.push(prt(new THREE.IcosahedronGeometry(1, 1), tx + (r() - .5) * 2.4 * sc, th_ + .6 + q * .55 * sc + r() * .5, tz + (r() - .5) * 2.4 * sc, gcs[(r() * 4) | 0], r() * 3, r() * 3, 0, (1.3 + r() * .8) * sc)); boxes.push({ x: tx, z: tz, hx: .5, hz: .5 }); }
-    else if (k >= 5 && dd < 22) P.push(prt(new THREE.DodecahedronGeometry(1, 0), tx, sc * .5, tz, r() < .5 ? 0xb9a37e : 0x9a9a96, r() * 3, r() * 3, r() * 3, sc * .8));
-  }
-  finish(g, P); scene.add(g); return { g, boxes };
-}
 function skiFeatures(cz, g, P) {
   const T = skT(), oz = cz * C, sLo = 40 - oz - C, sHi = 40 - oz;
   for (let k = Math.max(0, Math.floor(sLo / T.P) - 1); k <= Math.floor(sHi / T.P) + 1; k++) {
@@ -1239,7 +1203,7 @@ function redeem() {
   persist(); updateSide(); $('cmsg').textContent = m;
 }
 // ---------- maps + restart UI ----------
-const MAPS = { moto: { n: 'Motocross Track', p: 15000, d: 'A looping, squiggly dirt motocross track with berms, whoops, rollers, tabletops and doubles. Ride lap after lap. Every second of air pays $400. Dirt Bike Shop has 10 gas bikes and the E-Bike Shop is open here too.' }, ski: { n: 'Ski Resort', p: 20000, d: 'A 25 degree terrain park with kickers ($400/s of air) and rails ($200/s). Press POP to hop onto rails or pop off a kicker for more air. Ski shop only (skis or snowboards).' }, bmx: { n: 'BMX Park', p: 25000, d: 'A big smooth concrete and tar skate-plaza park with kidney-shaped bowls, a concrete quarter pipe, black tar jump lines, ledges, jump lines, a spine, funboxes, rollers and rails. Pedal with W, brake with S, POP to bunny hop. Every second of air pays $500. Bike shop has 10 BMX bikes.' }, mtb: { n: 'Mountain Bike Park', p: 30000, d: 'A 25 degree dirt downhill with huge dirt jumps and big landings. Every second of air pays $500. Use POP, flip and spin for tricks. Bike shop has 10 mountain bikes.' }, road: { n: 'Private Road', p: 1000, d: 'An endless, perfectly straight private road for speed testing.' }, jumps: { n: 'Stunt Park', p: 5000, d: 'Huge jumps. Every second of air pays $400 if you land it. Do tricks for bonus cash.' } };
+const MAPS = { hwy: { n: 'Highway', p: 25000, d: 'A 6-lane highway: three lanes of cars on your right going your way, three coming at you on the left. Near misses pay $500. Light bumps are fine, but hit a car too hard and you crash.' }, moto: { n: 'Motocross Track', p: 15000, d: 'A big looping, squiggly dirt motocross track with banked berms, whoops, rollers, rhythm sections, tabletops and doubles, with tire walls, hay bales, a grandstand and hills all around. Ride lap after lap. Every second of air pays $400. Dirt Bike Shop has 10 gas bikes and the E-Bike Shop is open here too.' }, ski: { n: 'Ski Resort', p: 20000, d: 'A 25 degree terrain park with kickers ($400/s of air) and rails ($200/s). Press POP to hop onto rails or pop off a kicker for more air. Ski shop only (skis or snowboards).' }, mtb: { n: 'Mountain Bike Park', p: 30000, d: 'A 25 degree dirt downhill with huge dirt jumps and big landings. Every second of air pays $500. Use POP, flip and spin for tricks. Bike shop has 10 mountain bikes.' }, road: { n: 'Private Road', p: 1000, d: 'An endless, perfectly straight private road for speed testing.' }, jumps: { n: 'Stunt Park', p: 5000, d: 'Huge jumps. Every second of air pays $400 if you land it. Do tricks for bonus cash.' } };
 const mapOwned = k => k === 'city' || save.codes.admin || (save.maps && save.maps[k]);
 function openMaps() {
   const row = (n, d, btn) => '<div class="row"><div><b>' + n + '</b><br><small>' + d + '</small></div>' + btn + '</div>';
@@ -1249,13 +1213,16 @@ function openMaps() {
 }
 function buyMap(k) { const m = MAPS[k]; if (!m) return; if (!mapOwned(k)) { if (save.money < m.p) return; save.money -= m.p; (save.maps = save.maps || {})[k] = 1; persist(); } setMap(k); }
 function goMap(k) { if (k === 'city' || (MAPS[k] && mapOwned(k))) setMap(k); }
-const ATMO = { city: [0xd9e6f0, 70, 175, 0xfff0d6, 1.15, .7], road: [0xdbe8f4, 140, 480, 0xfff6e4, 1.25, .75], jumps: [0xeadbc3, 100, 320, 0xffcf96, 1.3, .62], ski: [0xe6eef7, 120, 420, 0xfff6ea, 1.2, .85], mtb: [0xa9c9e8, 130, 460, 0xfff1d8, 1.25, .8], bmx: [0xc4def2, 170, 560, 0xfff1d6, 1.55, .66], moto: [0xbcd8f0, 150, 520, 0xfff0d2, 1.45, .7] };
+const ATMO = { city: [0xd9e6f0, 70, 175, 0xfff0d6, 1.15, .7], road: [0xdbe8f4, 140, 480, 0xfff6e4, 1.25, .75], jumps: [0xeadbc3, 100, 320, 0xffcf96, 1.3, .62], ski: [0xe6eef7, 120, 420, 0xfff6ea, 1.2, .85], mtb: [0xa9c9e8, 130, 460, 0xfff1d8, 1.25, .8], moto: [0xbcd8f0, 150, 520, 0xfff0d2, 1.45, .7], hwy: [0xcfe3f2, 130, 430, 0xfff3dc, 1.35, .72] };
 function setMap(k) {
   skiMode = k === 'ski' || k === 'mtb' || k === 'bmx'; mtbMode = k === 'mtb'; bmxMode = k === 'bmx'; SKS = bmxMode ? 0 : SK25; SKT = Math.atan(SKS); mtn.visible = skiMode && !bmxMode; peaks.visible = skiMode; paintPeaks(mtbMode ? 'mtb' : bmxMode ? 'bmx' : 'ski'); if (peakBodyM) { peakBodyM.color.copy(L(mtbMode ? 0x6d7f58 : bmxMode ? 0x8da3bf : 0x8d9bb0)); peakCapM.color.copy(L(mtbMode ? 0x4f7346 : bmxMode ? 0x7f97b4 : 0xf4f8fc)); } if (mtnMat) { mtnMat.map = mtbMode ? dirtTex : snowTex; mtnMat.needsUpdate = true; }
   { const a = ATMO[k] || ATMO.city; scene.fog.color.set(a[0]); scene.fog.near = a[1]; scene.fog.far = a[2]; sunLight.color.copy(L(a[3])); sunLight.intensity = a[4]; hemiL.intensity = a[5]; }
   map = k; for (const [, ch] of chunks) scene.remove(ch.g); chunks.clear(); for (const c of traffic) scene.remove(c.g); traffic.length = 0;
   clearCops(); pol.active = false; $('flash').style.display = 'none'; job.on = false; job.dest = null; marker.visible = false;
-  px = k === 'city' ? 0 : XC; pz = k === 'jumps' ? 20 : k === 'road' ? 40 : (k === 'ski' || k === 'mtb' || k === 'bmx') ? 30 : 0; h = k === 'city' ? -Math.PI * .75 : 0; if (k === 'moto') { const i0 = 10; px = XC + MOTO.X[i0]; pz = MOTO_CZ + MOTO.Z[i0]; h = Math.atan2(-MOTO.TX[i0], -MOTO.TZ[i0]); }
+  px = k === 'city' ? 0 : XC; pz = k === 'jumps' ? 20 : k === 'road' ? 40 : (k === 'ski' || k === 'mtb' || k === 'bmx') ? 30 : 0; h = k === 'city' ? -Math.PI * .75 : 0; if (k === 'moto' && !motoHills) makeHills(); if (motoHills) motoHills.visible = k === 'moto';
+  for (const c of hcars) scene.remove(c.g); hcars.length = 0; hwInit = false;
+  if (k === 'hwy') { px = XC + 6.7; pz = 0; h = 0; }
+  if (k === 'moto') { const i0 = 6; px = XC + MOTO.X[i0]; pz = MOTO_CZ + MOTO.Z[i0]; h = Math.atan2(-MOTO.TX[i0], -MOTO.TZ[i0]); }
   camH = h;
   v = 0; kx = kz = 0; py = 0; vy = 0; air = false; airT = 0; trPitch = trRoll = trSpin = 0; rampPitch = 0; lastVy = 0; fallT = 0; fallRoll = 0; lcx = lcz = 1e9; trafficInit = false;
   if (wheel.on) endWheelie(); applyVehicle(); updateSide(); closeModal(); toast(k === 'city' ? 'Back in the city' : MAPS[k].n);
@@ -1275,8 +1242,39 @@ const JOBS = [
   { n: 'Freight run', d: 'Very long hauls with the biggest pay.', m: 4.5, lo: 600, hi: 1000 }
 ];
 function openJob() {
-  if (job.on) show('<h2>' + JOBS[job.type].n + '</h2><p>Distance to drop-off: ' + dist(Math.hypot(job.dest.x - px, job.dest.z - pz)) + '.</p><p>Follow the amber beam or the orange dot on the map.</p><button class="act quit" onclick="quitJob()">Quit job</button>');
-  else show('<h2>Jobs</h2><p>Pick a job to start earning.</p>' + JOBS.map((j, i) => '<div class="row"><div><b>' + j.n + '</b><br><small>' + j.d + '</small></div><button onclick="getJob(' + i + ')">Take job</button></div>').join(''));
+  if (job.on) show('<h2>' + JOBS[job.type].n + '</h2><p>Distance to drop-off: ' + dist(Math.hypot(job.dest.x - px, job.dest.z - pz)) + '.</p><p>Follow the amber beam or the orange dot on the map.</p><button class="act quit" onclick="quitJob()">Quit job</button><button class="act" style="margin-top:8px" onclick="openBlackjack()">Blackjack</button>');
+  else show('<h2>Jobs</h2><p>Pick a job to start earning.</p><div class="row"><div><b>Blackjack</b><br><small>Play the dealer. Random cards every hand.</small></div><button onclick="openBlackjack()">Play</button></div>' + JOBS.map((j, i) => '<div class="row"><div><b>' + j.n + '</b><br><small>' + j.d + '</small></div><button onclick="getJob(' + i + ')">Take job</button></div>').join(''));
+}
+const BJ = { bet: 100, shoe: [], p: [], d: [], st: 'bet', msg: '', dbl: false };
+function bjShoe() { const a = []; for (let k = 0; k < 6; k++) for (let r = 0; r < 13; r++) for (let q = 0; q < 4; q++) a.push({ r, q }); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } BJ.shoe = a.slice(Math.floor(Math.random() * 40)); }
+function bjDraw() { if (BJ.shoe.length < 40) bjShoe(); return BJ.shoe.pop(); }
+function bjVal(h) { let t = 0, a = 0; for (const c of h) { if (c.r === 0) { a++; t += 11; } else t += Math.min(10, c.r + 1); } while (t > 21 && a-- > 0) t -= 10; return t; }
+function bjCard(c, hide) { if (hide) return '<span style="display:inline-block;width:40px;height:56px;margin:2px;border-radius:6px;background:#1e3a8a;border:2px solid #fff"></span>'; const n = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'][c.r], su = ['\u2660', '\u2665', '\u2666', '\u2663'][c.q], red = c.q === 1 || c.q === 2; return '<span style="display:inline-block;width:40px;height:56px;margin:2px;border-radius:6px;background:#fff;border:1px solid #999;color:' + (red ? '#c0392b' : '#111') + ';font-weight:700;line-height:1.15;padding:3px 0;box-sizing:border-box;text-align:center">' + n + '<br>' + su + '</span>'; }
+function openBlackjack() {
+  const hide = BJ.st === 'play', dv = hide ? Math.min(10, BJ.d[0].r + 1) || 0 : bjVal(BJ.d);
+  let h = '<h2>Blackjack</h2><p>Money: $' + save.money.toLocaleString() + '</p>';
+  if (BJ.st === 'bet') {
+    h += (BJ.msg ? '<p><b>' + BJ.msg + '</b></p>' : '<p>Beat the dealer without going over 21. Blackjack pays 3:2. Dealer stands on 17.</p>') + '<p>Bet: <b>$' + BJ.bet.toLocaleString() + '</b></p><div>' + [-500, -100, 100, 500, 1000].map(x => '<button class="act" style="margin:2px" onclick="bjBet(' + x + ')">' + (x > 0 ? '+' : '-') + '$' + Math.abs(x) + '</button>').join('') + '</div><button class="act" style="margin-top:10px" onclick="bjDeal()">Deal</button>';
+  } else {
+    h += '<p>Dealer: ' + (hide ? '?' : bjVal(BJ.d)) + '</p><div>' + BJ.d.map((c, i) => bjCard(c, hide && i === 1)).join('') + '</div><p>You: ' + bjVal(BJ.p) + ' &nbsp; Bet: $' + (BJ.bet * (BJ.dbl ? 2 : 1)).toLocaleString() + '</p><div>' + BJ.p.map(c => bjCard(c)).join('') + '</div>';
+    if (BJ.st === 'play') h += '<div style="margin-top:8px"><button class="act" style="margin:2px" onclick="bjHit()">Hit</button><button class="act" style="margin:2px" onclick="bjStand()">Stand</button>' + (BJ.p.length === 2 && save.money >= BJ.bet ? '<button class="act" style="margin:2px" onclick="bjDouble()">Double</button>' : '') + '</div>';
+    else h += '<p><b>' + BJ.msg + '</b></p><button class="act" onclick="BJ.st=\'bet\';BJ.msg=\'\';openBlackjack()">Next hand</button>';
+  }
+  show(h);
+}
+function bjBet(x) { BJ.bet = Math.max(50, Math.min(Math.max(50, save.money), BJ.bet + x)); BJ.msg = ''; openBlackjack(); }
+function bjDeal() {
+  if (save.money < BJ.bet) { BJ.msg = 'Not enough money for that bet.'; BJ.bet = Math.max(50, Math.min(BJ.bet, Math.floor(save.money / 50) * 50)); return openBlackjack(); }
+  save.money -= BJ.bet; persist(); BJ.p = [bjDraw(), bjDraw()]; BJ.d = [bjDraw(), bjDraw()]; BJ.dbl = false; BJ.st = 'play';
+  if (bjVal(BJ.p) === 21) return bjEnd(bjVal(BJ.d) === 21 ? 'push' : 'bj'); openBlackjack();
+}
+function bjHit() { BJ.p.push(bjDraw()); const v = bjVal(BJ.p); if (v > 21) bjEnd('bust'); else if (v === 21) bjStand(); else openBlackjack(); }
+function bjDouble() { save.money -= BJ.bet; persist(); BJ.dbl = true; BJ.p.push(bjDraw()); if (bjVal(BJ.p) > 21) bjEnd('bust'); else bjStand(); }
+function bjStand() { while (bjVal(BJ.d) < 17) BJ.d.push(bjDraw()); const p = bjVal(BJ.p), d = bjVal(BJ.d); bjEnd(d > 21 ? 'win' : p > d ? 'win' : p < d ? 'lose' : 'push'); }
+function bjEnd(r) {
+  const b = BJ.bet * (BJ.dbl ? 2 : 1); let pay = 0, m;
+  if (r === 'bj') { pay = Math.floor(b * 2.5); m = 'Blackjack! You win $' + (pay - b).toLocaleString(); } else if (r === 'win') { pay = b * 2; m = 'You win $' + b.toLocaleString() + (bjVal(BJ.d) > 21 ? ' (dealer busts)' : ''); } else if (r === 'push') { pay = b; m = 'Push. Your bet is returned.'; } else if (r === 'bust') m = 'Bust! You lose $' + b.toLocaleString(); else m = 'Dealer wins. You lose $' + b.toLocaleString();
+  save.money += pay; persist(); BJ.st = 'done'; BJ.msg = m; openBlackjack();
 }
 function quitJob() { job.on = false; job.dest = null; marker.visible = false; closeModal(); toast('You quit your job'); }
 function newDest() {
@@ -1378,7 +1376,7 @@ function openPolice() {
     (pol.level === i ? '<span>On</span>' : '<button onclick="setPolice(' + i + ')">Select</button>') + '</div>').join(''));
 }
 updateSide();
-Object.assign(window, { openShop, openJob, getJob, closeModal, buy, equip, quitJob, openPolice, setPolice, openBikes, openCodes, redeem, openGarage, upBuy, paintBuy, openSkiShop, skiBuy, skiEquip, setGear, toggleFP, openRider, setRider, riderUp, openGearGarage, guBuy, guPaint, openMaps, buyMap, goMap, openRestart, doRestart, openAdmin, redeemAdmin, buyBikeShop, openSettings, setUnits });
+Object.assign(window, { openShop, openJob, getJob, closeModal, buy, equip, quitJob, openPolice, setPolice, openBikes, openCodes, redeem, openGarage, upBuy, paintBuy, openSkiShop, skiBuy, skiEquip, setGear, toggleFP, openRider, setRider, riderUp, openGearGarage, guBuy, guPaint, openMaps, buyMap, goMap, openRestart, doRestart, openAdmin, redeemAdmin, buyBikeShop, openSettings, setUnits, openBlackjack, bjBet, bjDeal, bjHit, bjStand, bjDouble, openGasShop, BJ });
 
 // ---------- input ----------
 const keys = { up: 0, down: 0, left: 0, right: 0, look: 0 }, stick = { x: 0, y: 0 };
@@ -1502,7 +1500,7 @@ function update(dt) {
   }
   const pcx = Math.floor(px / C), pcz = Math.floor(pz / C);
   if (pcx !== lcx || pcz !== lcz) { lcx = pcx; lcz = pcz; stream(pcx, pcz); }
-  updateTraffic(dt);
+  updateTraffic(dt); hwStep(dt);
   let hit = false, carHit = null;
   for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
     const ch = chunks.get((pcx + i) + ',' + (pcz + j)); if (!ch) continue;
